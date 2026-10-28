@@ -1,0 +1,63 @@
+{
+  "core": {
+    "max_hp": 10000,
+    "critical_ratio": 0.25
+  },
+  "heroes": {
+    "default_hero": "guardian",
+    "respawn_seconds": 6.0
+  },
+  "arena": {
+    "path_count": 3
+  },
+  "waves": {
+    "default_prepare_seconds": 12.0,
+    "enemy_hp_growth_per_wave": 0.08,
+    "enemy_damage_growth_per_wave": 0.05
+  },
+  "enemies": {
+    "corpse_seconds": 2.5,
+    "threat_seconds": 4.0,
+    "separation_radius": 1.1
+  },
+  "player_scaling": {
+    "enemy_hp_per_extra_player": 0.6
+  },
+  "rewards": {
+    "start_gold": 500,
+    "wave_bonus_gold": 150,
+    "wave_xp_base": 40,
+    "wave_xp_per_wave": 10,
+    "xp_share_radius": 16.0,
+    "gold_per_extra_player": 0.3,
+    "support_gold_per_point": 0.25,
+    "support_gold_cap": 150,
+    "role_bonus_max": 100,
+    "role_bonus_full_score": 600,
+    "afk_seconds": 60.0,
+    "team_gold_per_wave": 100,
+    "team_gold_per_player": 40,
+    "sell_ratio": 0.5,
+    "consumable_slots": 2,
+    "bag_size": 6
+  },
+  "contribution": {
+    "_comment": "Anteile am Kill-Gold eines Gegners (Summe aller Anteile wird aufgeteilt). Siehe docs/BALANCING.md.",
+    "control_weight": { "stun": 0.15, "taunt": 0.08, "slow": 0.05 },
+    "control_cap": 0.3,
+    "taunt_switch_bonus": 0.1,
+    "tank_cap": 0.2,
+    "tank_scale": 0.5,
+    "repeat_factor": 0.5,
+    "role_weights": { "support": 1.0, "tank": 0.5, "control": 200.0, "damage": 0.3 }
+  },
+  "team_upgrades": [
+    { "id": "core_hp", "name": "Verstärkter Kern", "description": "+1.000 maximale Kernleben (und sofort geheilt).", "costs": [400, 700, 1000], "value_per_level": 1000 },
+    { "id": "core_regen", "name": "Kernregeneration", "description": "Der Kern regeneriert Leben pro Sekunde.", "costs": [300, 500, 800], "value_per_level": 4 },
+    { "id": "core_barrier", "name": "Schutzbarriere", "description": "Zu Beginn jeder Welle ein Schild auf dem Kern.", "costs": [350, 600, 900], "value_per_level": 500 }
+  ],
+  "telemetry": {
+    "enabled": true,
+    "directory": "user://telemetry"
+  }
+}

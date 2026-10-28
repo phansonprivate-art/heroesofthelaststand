@@ -1,0 +1,4 @@
+RPG Sound Pack von artisticdude
+Quelle: https://opengameart.org/content/rpg-sound-pack
+Lizenz: CC0 (Public Domain), laut OpenGameArt-Seite (das Paket selbst enthält keine Lizenzdatei)
+Verwendet: battle/*.wav (Schwung, Klinge, Zauber)

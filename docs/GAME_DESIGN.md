@@ -1,0 +1,137 @@
+# Game Design
+
+Die vollständige Vision steht im Master-Prompt (Koop-Hero-Defense, 1–4 Spieler, ca. 45 Minuten, 20 Wellen + dreiphasiger Boss, Rollen Tank/Support/Magier/Schurke, beteiligungsbasierte Wirtschaft). Dieses Dokument beschreibt, was davon **umgesetzt** ist, und hält Designentscheidungen fest.
+
+## Welt und Ton
+
+Eine verfallene Festungshalle; untote Horden strömen durch drei Tore auf einen leuchtenden Kristallkern zu. Stil: Low-Poly mit klaren Silhouetten (KayKit), kräftige Lesbarkeitsfarben: Held = Cyan, Gegner/Gefahr = Rot, Kern = Hellblau → Rot im kritischen Zustand.
+
+## Arena (umgesetzt)
+
+- 64 × 64 m, Mauerring, Kern im Zentrum.
+- Drei Tore mit Spawnpfaden: **Nord** (0), **West** (1), **Ost** (2). Jeder Pfad hat einen Knick, damit die Gegner aus unterschiedlichen Winkeln kommen. Die Laufwege sind als dunkle Bodenstreifen markiert.
+- Vier Säulen zwischen den Pfaden als Orientierung und kleine Hindernisse, Deko in den Ecken.
+- Heldenstart und Wiederbelebung südlich des Kerns. Der Bereich südlich des Kerns ist für Shop/Upgrades reserviert (Phase 3), damit keine langen Laufwege entstehen.
+
+## Helden (umgesetzt, noch ohne Fähigkeiten)
+
+| Held | Archetyp | Spielweise | Angriff |
+|---|---|---|---|
+| **Guardian** | Stärke | Tank: viel Leben und Rüstung, bindet Gegner durch Nähe | Schwert, Nahkampf 2,2 m |
+| **Shadow** | Beweglichkeit | Schurke: höchster Einzelziel-Schaden, schnell, Krits (Start 14 %) | Doppeldolche, Nahkampf 1,9 m |
+| **Arcanist** | Intelligenz | Magier: Fernkampf, magischer Schaden, verlangsamt (20 %, 1 s) | Magisches Geschoss, 9 m |
+
+Gemeinsam für alle:
+- Automatischer Angriff auf Gegner in Reichweite, wenn der Held steht.
+- Bewegen bricht einen laufenden Schlag ab (bewusste Entscheidung zwischen Positionieren und Schaden).
+- Tod → 6 s Wartezeit → Wiederbelebung am Startpunkt mit vollen LP. Der Tod des Helden beendet die Runde nicht.
+
+**Builds:** Die Archetypen geben Startwerte, Wachstum und Hauptattribut vor, schränken aber nichts ein. Jeder Held kann jedes Attribut kaufen, z. B. ein Arcanist mit Stärke für mehr Leben oder ein Guardian mit Intelligenz für spätere Support-Fähigkeiten. Der Soft Cap (40 Punkte) verhindert, dass ein einzelnes Attribut alles dominiert.
+
+## Progression (umgesetzt)
+
+- **XP** gibt es für besiegte Gegner (alle beteiligten Helden und alle lebenden Helden in 16 m Umkreis erhalten die vollen XP, es wird nicht aufgeteilt) und für jede abgeschlossene Welle. Wer weit weg und unbeteiligt ist, bekommt keine Kill-XP.
+- **Levelaufstieg:** Banner, goldener Lichtring, Attribute wachsen, gewonnene Leben und Mana werden aufgefüllt. Der Hinweis „Attribute verbessern [C]“ pulsiert, sobald ein Kauf möglich ist.
+- **Gold** für Kills nach Schadensanteil, dazu der Wellenbonus. Ausgeben im Charakterfenster (C) für Attributpunkte. Fähigkeiten, Ausrüstung und Shop folgen in Phase 3.
+
+## Status-Effekte (umgesetzt)
+
+- **Verlangsamung:** verringert das Lauftempo; gleiche Effekte stapeln nicht (die stärkere Wirkung und die längere Dauer gelten), höchstens 70 %. Verlangsamte Gegner schimmern blau.
+- **Betäubung:** keine Bewegung, keine Angriffe, ein laufender Schlag wird abgebrochen. Betäubte Gegner schimmern gelb.
+- **Kontrollresistenz** (`cc_resist`, für Bosse in Phase 4) verkürzt die Dauer.
+
+## Gegner (umgesetzt)
+
+| Typ | Interne ID | Rolle | Besonderheit |
+|---|---|---|---|
+| Knochenläufer | `grunt` | Standard | – |
+| Schattenhuscher | `runner` | schnell, schwach | hoher Kernschaden pro LP, gefährlich beim Durchbruch |
+| Grabkoloss | `brute` | langsam, zäh | sehr hoher Kernschaden |
+| Knochenseher | `seer` | Fernkämpfer | schießt aus 7 m magische Geschosse, bleibt auf Abstand |
+| Grabritter | `grave_knight` | Elite | **Bodenschlag:** roter Warnkreis (1 s, steht still), dann Schaden und Verlangsamung im Kreis |
+| Knochenkoloss | `colossus` | Mini-Boss (Welle 5 und 9) | sehr zäh, Kontrollresistenz 60 %, großer Bodenschlag |
+| Morvath, der Totenbeschwörer | `morvath` | Endboss (Welle 10) | drei Phasen, siehe unten |
+
+Die vier neuen Figuren sind eigene Blender-Modelle (`tools/blender_build_enemies.py`) auf dem KayKit-Skelett.
+
+**Endboss Morvath (drei Phasen nach Lebenspunkten, `data.boss`):**
+1. **ab 100 %:** Fernkampfgeschosse; beschwört alle 14 s vier Skelette, deren Beschwörungskreise 1,2 s vorher am Boden erscheinen.
+2. **unter 66 % – Seelenfeuer:** zusätzlich grüne Kreise unter bis zu drei Helden; nach 1,5 s Explosion. Wer ausweicht, bleibt heil.
+3. **unter 33 % – Raserei und Todeswelle:** 50 % schnellere Angriffe, 30 % schneller; alle 11 s wächst ein violetter Ring (9 m) um den Boss, nach 2,2 s Schaden im ganzen Kreis.
+
+Phasenwechsel und Auftritt werden als Banner angekündigt; die Bossleiste oben zeigt Lebenspunkte und Phase. Stirbt Morvath, zerfallen seine Beschwörungen. Betäubung unterbricht Bodenschläge (Bosse sind dagegen zu 75 % resistent).
+
+**Verhalten (Zustandsautomat):**
+1. *SPAWNING* – steigt aus dem Boden (Animation), bewegt sich noch nicht.
+2. *ADVANCE* – folgt den Wegpunkten seines Pfads, ab 9 m vor dem Kern direkt darauf zu.
+3. *ATTACK* – greift das aktuelle Ziel an, sobald es in Reichweite ist.
+4. *DEAD* – Zerfall-Animation, nach 2,5 s entfernt.
+
+**Zielwahl (nach Priorität):**
+1. Ein Held, der den Gegner getroffen hat (4 s lang, mit jedem Treffer erneuert), solange er im `aggro_leash` bleibt.
+2. Ein Held, der in den `aggro_radius` des Gegners kommt. Der Gegner verfolgt ihn, bis er den `aggro_leash` verlässt.
+3. Sonst der Kern.
+
+Helden ziehen Gegner also schon durch ihre Nähe auf sich. Das ist die Grundlage der Tank-Rolle. Der Leash verhindert, dass ein Gegner endlos weggezogen wird. Schattenhuscher haben einen kleinen Radius und brechen eher zum Kern durch. Taunt (Phase 3) erhält Vorrang vor allem.
+
+## Wellen (umgesetzt: 10 Wellen mit Mini-Boss und Endboss)
+
+- Ablauf: **Ankündigung + Vorbereitung** (Countdown, Vorschau der Gegner) → **Spawnen** (zeitgesteuerte Gruppen je Pfad) → **Aufräumen** (bis alle besiegt sind) → nächste Welle.
+- „Jetzt starten“ (N) überspringt die Vorbereitung.
+- Nach der letzten Welle: Sieg, sofern der Kern steht. Die letzte Welle ist der Endboss: Sein Fall beendet die Runde.
+- Definiert in `data/waves/waves.json` (Phase 6 erweitert auf 20):
+  1. Die Vorhut
+  2. Flinke Schatten
+  3. Schwere Schritte
+  4. Die Seher
+  5. Der Koloss erwacht (Mini-Boss)
+  6. Grabritter
+  7. Dreifacher Ansturm
+  8. Die Ehrengarde
+  9. Die letzte Flut (Mini-Boss)
+  10. Morvath, der Totenbeschwörer (Endboss)
+
+## Kern (umgesetzt)
+
+10.000 LP. Rückmeldung bei Treffern: Kristall blitzt, Kamera wackelt leicht, Schadenszahl. Unter 25 % gilt er als **kritisch**: roter Balken, pulsierender roter Bildschirmrand, Warnbanner. Bei 0 LP: Niederlage, Gegner jubeln.
+
+## Steuerung (entschieden am 2026-10-27)
+
+Die Vorgabe "WASD-Bewegung" und "Fähigkeiten auf Q W E R T Y" belegte W doppelt. **Entscheidung des Spielers: MOBA-Steuerung** (vertraut aus League of Legends):
+
+- Bewegen und Angreifen mit der Maus (Rechtsklick), Angriffsbewegung mit A + Linksklick, Stopp mit S
+- Sechs Fähigkeitsslots auf **Q W E R D F**. R ist der Ultimate-Slot (ab Level 10). D und F sind die beiden zusätzlichen Slots, die bei LoL den Beschwörerzaubern entsprechen.
+- Kamera mit Y fixierbar oder lösbar; gelöst wird sie am Bildschirmrand verschoben, die Leertaste zentriert
+- WASD entfällt. Die Kamera bleibt nach Norden ausgerichtet.
+
+Die Belegung steht zentral in `scripts/core/input_setup.gd`. Ein Test stellt sicher, dass keine Taste doppelt belegt ist.
+
+## Fähigkeiten (umgesetzt)
+
+**Seit 2026-10-27 hat jede Klasse eigene Fähigkeiten** (Wunsch des Spielers): Guardian – Shield Bash, Taunt, Guardian Blessing, Arcane Barrier, Bastion; Shadow – Shadow Strike, Poison Mark, Fan of Knives, Smoke Bomb, Shadow Dance; Arcanist – Fireball, Frost Nova, Chain Lightning, Healing Pulse, Starfall oder Sanctuary. Die Wirkung skaliert stark mit dem Hauptattribut. Alle Fähigkeiten haben 3 Stufen. Die Stufen verbessern nicht nur Schaden, sondern auch Reichweite, Dauer, Kontrolle, Abklingzeit, Stapel oder fügen Spezialeffekte hinzu.
+
+| Fähigkeit | Ziel | Wirkung | Stufe 3 |
+|---|---|---|---|
+| Shield Bash | Gegner | Schaden + Betäubung (Bosse verkürzt) | 1,5 s Betäubung, mehr Reichweite |
+| Taunt | Umkreis | Gegner müssen den Tank angreifen | + Rüstung während Taunt |
+| Arcane Barrier | Verbündeter/selbst | Schild, skaliert mit Int und Str | größerer Schild, mehr Reichweite |
+| Shadow Strike | Gegner | Sprung zum Ziel, hoher Schaden | immer kritisch |
+| Poison Mark | Gegner | Gift über Zeit, ignoriert Rüstung | bis 3 Stapel |
+| Fireball | Punkt | Explosion, Rand halber Schaden | größerer Radius |
+| Frost Nova | Umkreis | Schaden + Verlangsamung | 60 % Verlangsamung |
+| Healing Pulse | Umkreis | Heilung (nur effektiv) | größerer Radius |
+| Guardian Blessing | Umkreis | Schadensreduktion, stapelt nicht | + Angriffstempo |
+| **Bastion** (Ultimate) | selbst + Umkreis | 50–60 % weniger Schaden, Verbündete 20–30 %, kurzer Taunt | |
+| **Shadow Dance** (Ultimate) | selbst | Tempo, Angriffstempo, Krit | |
+| **Starfall** (Ultimate) | Gebiet | 8–12 Einschläge mit Vorwarnung | |
+| **Sanctuary** (Ultimate, Blessing-Variante) | ganzes Team | Schadensreduktion + Heilung | |
+
+Ultimates: ab Heldenstufe 5, Abklingzeit 90–120 s, nur eines pro Held (bewusste Wahl), immer auf R. Die Schadensreduktion ist auf 75 % gedeckelt; niemand wird unverwundbar.
+
+## Shop, Ausrüstung, Team (umgesetzt)
+
+- **Shop (B)** ist überall erreichbar, damit es keine langen Laufwege gibt. Reiter: Fähigkeiten, Attribute, Ausrüstung, Verbrauch, Team. Nicht kaufbare Einträge zeigen den Grund.
+- **Ausrüstung:** Iron Blade, Arcane Focus (Waffe), Guardian Plate (Rüstung), Warden Helm, Shadow Boots, Ring of Haste, Healing Amulet. Kein Gegenstand ist für alle Builds überlegen; jeder bedient eine Richtung.
+- **Verbrauch** (Tasten 1/2, je bis 3 Stück): Phoenix Potion (50 % Leben), Protection Rune (4 s 30 % weniger Schaden).
+- **Inventar (I):** Ablegen, Anlegen/Tauschen aus der Tasche, Verkaufen für 50 %.
+- **Team-Gold:** 100 + 40 je Spieler pro Welle, dazu freiwillige Spenden. Ausgeben für Verstärkter Kern (+1.000 LP), Kernregeneration (4/8/12 LP/s), Schutzbarriere (500/1.000/1.500 Schild je Welle). Je 3 Stufen. Türme sind noch nicht umgesetzt.

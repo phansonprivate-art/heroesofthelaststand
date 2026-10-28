@@ -1,0 +1,84 @@
+[gd_scene load_steps=18 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/match_controller.gd" id="1_match"]
+[ext_resource type="PackedScene" path="res://scenes/arena/arena.tscn" id="2_arena"]
+[ext_resource type="PackedScene" path="res://scenes/arena/core.tscn" id="3_core"]
+[ext_resource type="Script" path="res://scripts/gameplay/combat_service.gd" id="4_combat"]
+[ext_resource type="Script" path="res://scripts/enemies/enemy_spawner.gd" id="5_spawner"]
+[ext_resource type="Script" path="res://scripts/waves/wave_manager.gd" id="6_waves"]
+[ext_resource type="Script" path="res://scripts/gameplay/floating_text.gd" id="7_float"]
+[ext_resource type="Script" path="res://scripts/heroes/camera_rig.gd" id="8_camera"]
+[ext_resource type="Script" path="res://scripts/heroes/hero_input.gd" id="9_input"]
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="10_hud"]
+[ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="11_pause"]
+[ext_resource type="Script" path="res://scripts/ui/game_over_screen.gd" id="12_gameover"]
+[ext_resource type="Script" path="res://scripts/economy/gold_service.gd" id="13_gold"]
+[ext_resource type="Script" path="res://scripts/economy/reward_service.gd" id="14_reward"]
+[ext_resource type="Script" path="res://scripts/economy/upgrade_service.gd" id="15_upgrade"]
+[ext_resource type="Script" path="res://scripts/telemetry/telemetry_service.gd" id="16_telemetry"]
+[ext_resource type="Script" path="res://scripts/gameplay/match_audio.gd" id="17_audio"]
+[ext_resource type="Script" path="res://scripts/economy/shop_service.gd" id="18_shop"]
+[ext_resource type="Script" path="res://scripts/gameplay/vfx_layer.gd" id="19_vfx"]
+
+[node name="Match" type="Node3D"]
+script = ExtResource("1_match")
+
+[node name="Arena" parent="." instance=ExtResource("2_arena")]
+
+[node name="Core" parent="." instance=ExtResource("3_core")]
+
+[node name="Combat" type="Node" parent="."]
+script = ExtResource("4_combat")
+
+[node name="EnemySpawner" type="Node" parent="."]
+script = ExtResource("5_spawner")
+
+[node name="WaveManager" type="Node" parent="."]
+script = ExtResource("6_waves")
+
+[node name="Gold" type="Node" parent="."]
+script = ExtResource("13_gold")
+
+[node name="Rewards" type="Node" parent="."]
+script = ExtResource("14_reward")
+
+[node name="Upgrades" type="Node" parent="."]
+script = ExtResource("15_upgrade")
+
+[node name="Shop" type="Node" parent="."]
+script = ExtResource("18_shop")
+
+[node name="Telemetry" type="Node" parent="."]
+script = ExtResource("16_telemetry")
+
+[node name="MatchAudio" type="Node" parent="."]
+script = ExtResource("17_audio")
+
+[node name="Heroes" type="Node3D" parent="."]
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="Projectiles" type="Node3D" parent="."]
+
+[node name="FloatingText" type="Node3D" parent="."]
+script = ExtResource("7_float")
+
+[node name="Vfx" type="Node3D" parent="."]
+script = ExtResource("19_vfx")
+
+[node name="CameraRig" type="Node3D" parent="."]
+script = ExtResource("8_camera")
+
+[node name="HeroInput" type="Node3D" parent="."]
+script = ExtResource("9_input")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("10_hud")
+
+[node name="PauseMenu" type="CanvasLayer" parent="."]
+process_mode = 3
+script = ExtResource("11_pause")
+
+[node name="GameOver" type="CanvasLayer" parent="."]
+process_mode = 3
+script = ExtResource("12_gameover")

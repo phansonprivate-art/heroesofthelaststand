@@ -1,0 +1,14 @@
+{
+  "_comment": "Gegenstände. slot: weapon | armor | helmet | boots | ring | amulet | consumable. stats werden als flache Boni in den StatBlock geschrieben. Verkauf: sell_ratio aus game.json.",
+  "items": [
+    { "id": "iron_blade", "name": "Iron Blade", "slot": "weapon", "rarity": "common", "price": 450, "stats": { "attack_damage": 14 }, "description": "Mehr Angriffsschaden." },
+    { "id": "arcane_focus", "name": "Arcane Focus", "slot": "weapon", "rarity": "common", "price": 550, "stats": { "int": 8, "max_mana": 80, "ability_power": 0.12 }, "description": "Magische Stärke und Mana." },
+    { "id": "guardian_plate", "name": "Guardian Plate", "slot": "armor", "rarity": "common", "price": 600, "stats": { "armor": 10, "max_hp": 180 }, "description": "Rüstung und Leben." },
+    { "id": "warden_helm", "name": "Warden Helm", "slot": "helmet", "rarity": "common", "price": 350, "stats": { "max_hp": 90, "magic_resist": 8 }, "description": "Leben und Magieresistenz." },
+    { "id": "shadow_boots", "name": "Shadow Boots", "slot": "boots", "rarity": "common", "price": 500, "stats": { "move_speed": 0.6, "agi": 6 }, "description": "Lauftempo und Beweglichkeit." },
+    { "id": "ring_of_haste", "name": "Ring of Haste", "slot": "ring", "rarity": "uncommon", "price": 600, "stats": { "attack_speed": 0.15 }, "description": "Angriffstempo +15 %." },
+    { "id": "healing_amulet", "name": "Healing Amulet", "slot": "amulet", "rarity": "uncommon", "price": 500, "stats": { "heal_power": 0.2, "hp_regen": 2.0 }, "description": "Stärkere Heilung und Lebensregeneration." },
+    { "id": "phoenix_potion", "name": "Phoenix Potion", "slot": "consumable", "rarity": "uncommon", "price": 150, "max_stack": 3, "use": { "heal_ratio": 0.5 }, "description": "Heilt sofort 50 % der maximalen Leben." },
+    { "id": "protection_rune", "name": "Protection Rune", "slot": "consumable", "rarity": "common", "price": 120, "max_stack": 3, "use": { "reduction": 0.3, "duration": 4.0 }, "description": "4 s lang 30 % weniger Schaden." }
+  ]
+}

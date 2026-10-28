@@ -1,0 +1,9 @@
+assets/audio/voice/warcry_1.mp3 bis warcry_4.mp3
+
+Herkunft: am 2026-10-28 mit ElevenLabs (Modell eleven_text_to_sound_v2, Soundeffekte) über das
+ElevenLabs-Konto des Projektinhabers generiert. Prompt: wortloser Kampfschrei eines Ritters, tiefe
+Stimme, ca. 1,5 s, trocken, ohne Musik.
+
+Keine Fremdinhalte und keine Stimme einer realen Person. Die Nutzungsrechte (z. B. kommerzielle
+Verwendung) richten sich nach dem ElevenLabs-Tarif des Kontos, mit dem generiert wurde – vor einer
+Veröffentlichung dort prüfen.

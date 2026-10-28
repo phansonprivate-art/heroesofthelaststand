@@ -1,0 +1,49 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/heroes/hero.gd" id="1_hero"]
+[ext_resource type="Script" path="res://scripts/gameplay/health_component.gd" id="2_health"]
+[ext_resource type="Script" path="res://scripts/gameplay/character_visual.gd" id="3_visual"]
+[ext_resource type="Script" path="res://scripts/gameplay/status_effects.gd" id="5_status"]
+[ext_resource type="Script" path="res://scripts/skills/ability_caster.gd" id="6_abilities"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+radius = 0.5
+height = 2.0
+
+[sub_resource type="TorusMesh" id="TorusMesh_ring"]
+inner_radius = 0.72
+outer_radius = 0.86
+rings = 32
+ring_segments = 4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ring"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.35, 0.8, 1, 0.75)
+
+[node name="Hero" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 9
+script = ExtResource("1_hero")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+
+[node name="Visual" type="Node3D" parent="."]
+script = ExtResource("3_visual")
+
+[node name="Status" type="Node" parent="."]
+script = ExtResource("5_status")
+
+[node name="Abilities" type="Node" parent="."]
+script = ExtResource("6_abilities")
+
+[node name="SelectionRing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.2, 0, 0, 0, 1, 0, 0.04, 0)
+cast_shadow = 0
+mesh = SubResource("TorusMesh_ring")
+surface_material_override/0 = SubResource("StandardMaterial3D_ring")

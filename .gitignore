@@ -1,0 +1,6 @@
+.godot/
+/android/
+*.tmp
+export/
+*.blend1
+tools/_tmp_*

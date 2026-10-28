@@ -1,0 +1,8 @@
+assets/audio/skills/*.mp3 (42 Dateien: je 2 Varianten für 19 Fähigkeiten sowie die Einschläge von Fireball und Starfall)
+
+Herkunft: am 2026-10-28 mit ElevenLabs (Modell eleven_text_to_sound_v2, Soundeffekte) über das
+ElevenLabs-Konto des Projektinhabers generiert, je ein beschreibender englischer Prompt pro Klang
+(z. B. "Heavy metal shield slamming hard into an armored enemy ...").
+
+Keine Fremdinhalte. Die Nutzungsrechte (z. B. kommerzielle Verwendung) richten sich nach dem
+ElevenLabs-Tarif des Kontos, mit dem generiert wurde – vor einer Veröffentlichung dort prüfen.

@@ -1,0 +1,227 @@
+{
+  "_comment": "Fähigkeiten je Klasse (heroes). target: enemy | ally | self | point. costs: [Lernen, Stufe 2, Stufe 3]. Werte je Stufe in levels[]. Wirkwerte = Basis × Fähigkeitsstärke + Σ scaling[attr] × Attribut – das Hauptattribut der Klasse trägt einen großen Teil. anim: Körperanimation [Name, Tempo]. Ultimates (kind=ultimate) ab Heldenstufe 5, nur im R-Slot, eines pro Held.",
+  "skills": [
+    {
+      "id": "shield_bash", "name": "Shield Bash", "kind": "normal", "heroes": ["guardian"], "archetype": "str", "icon": "SB", "color": "#5aa9ff",
+      "target": "enemy", "anim": ["Block_Attack", 1.4, 0.2],
+      "description": "Schildstoß: Schaden und kurze Betäubung. Bosse sind nur kurz betroffen.",
+      "costs": [300, 350, 500], "scaling": { "str": 1.5 },
+      "levels": [
+        { "mana": 30, "cooldown": 8.0, "range": 2.6, "damage": 30, "stun": 1.0 },
+        { "mana": 30, "cooldown": 7.0, "range": 2.6, "damage": 55, "stun": 1.25 },
+        { "mana": 25, "cooldown": 6.0, "range": 3.0, "damage": 80, "stun": 1.5 }
+      ]
+    },
+    {
+      "id": "taunt", "name": "Taunt", "kind": "normal", "heroes": ["guardian"], "archetype": "str", "icon": "TA", "color": "#ff6a4a",
+      "target": "self", "anim": ["Cheer", 1.8],
+      "description": "Kampfschrei: Gegner im Umkreis müssen dich angreifen. Rüstungsbonus wächst mit Stärke.",
+      "costs": [300, 350, 500], "scaling": { "str": 0.25 },
+      "scaled_keys": ["armor"],
+      "levels": [
+        { "mana": 40, "cooldown": 14.0, "radius": 6.0, "duration": 2.5, "armor": 0 },
+        { "mana": 40, "cooldown": 12.0, "radius": 7.0, "duration": 3.0, "armor": 5 },
+        { "mana": 40, "cooldown": 10.0, "radius": 8.0, "duration": 3.5, "armor": 10 }
+      ]
+    },
+    {
+      "id": "guardian_blessing", "name": "Guardian Blessing", "kind": "normal", "heroes": ["guardian"], "archetype": "str", "icon": "GB", "color": "#ffd76a",
+      "target": "self", "anim": ["Spellcast_Raise", 2.2],
+      "description": "Verbündete im Umkreis erleiden weniger Schaden (stapelt nicht). Stufe 3: zusätzlich Angriffstempo.",
+      "costs": [300, 350, 500], "scaling": { "str": 0.002 },
+      "scaled_keys": ["reduction"],
+      "levels": [
+        { "mana": 50, "cooldown": 16.0, "radius": 8.0, "reduction": 0.1, "duration": 5.0, "haste": 0.0 },
+        { "mana": 50, "cooldown": 15.0, "radius": 9.0, "reduction": 0.14, "duration": 5.0, "haste": 0.0 },
+        { "mana": 50, "cooldown": 14.0, "radius": 10.0, "reduction": 0.18, "duration": 6.0, "haste": 0.15 }
+      ]
+    },
+    {
+      "id": "arcane_barrier", "name": "Arcane Barrier", "kind": "normal", "heroes": ["guardian"], "archetype": "str", "icon": "AB", "color": "#7fd8ff",
+      "target": "ally", "anim": ["Spellcast_Shoot", 1.3],
+      "description": "Schild auf dir oder einem Verbündeten, der Schaden absorbiert. Skaliert stark mit Stärke.",
+      "costs": [300, 350, 500], "scaling": { "str": 3.0, "int": 1.0 },
+      "levels": [
+        { "mana": 50, "cooldown": 12.0, "range": 9.0, "shield": 40, "duration": 6.0 },
+        { "mana": 50, "cooldown": 11.0, "range": 9.0, "shield": 90, "duration": 6.0 },
+        { "mana": 45, "cooldown": 10.0, "range": 11.0, "shield": 140, "duration": 7.0 }
+      ]
+    },
+    {
+      "id": "shadow_strike", "name": "Shadow Strike", "kind": "normal", "heroes": ["shadow"], "archetype": "agi", "icon": "SS", "color": "#b67cff",
+      "target": "enemy", "anim": ["kk/Melee_1H_Attack_Jump_Chop", 1.9],
+      "description": "Springt zum Ziel und trifft es hart. Stufe 3: immer kritisch.",
+      "costs": [300, 350, 500], "scaling": { "agi": 2.0 },
+      "levels": [
+        { "mana": 30, "cooldown": 6.0, "range": 7.0, "damage": 40, "always_crit": 0 },
+        { "mana": 35, "cooldown": 6.0, "range": 7.0, "damage": 55, "always_crit": 0 },
+        { "mana": 35, "cooldown": 5.0, "range": 8.0, "damage": 75, "always_crit": 1 }
+      ]
+    },
+    {
+      "id": "poison_mark", "name": "Poison Mark", "kind": "normal", "heroes": ["shadow"], "archetype": "agi", "icon": "PM", "color": "#6fdc6f",
+      "target": "enemy", "anim": ["1H_Ranged_Shoot", 1.6],
+      "description": "Giftwurf: Schaden über Zeit, ignoriert Rüstung. Begrenzt stapelbar (1/2/3 Stapel).",
+      "costs": [300, 350, 500], "scaling": { "agi": 0.5 },
+      "levels": [
+        { "mana": 25, "cooldown": 6.0, "range": 8.0, "dps": 8, "duration": 5.0, "max_stacks": 1 },
+        { "mana": 30, "cooldown": 5.0, "range": 8.0, "dps": 9, "duration": 5.0, "max_stacks": 2 },
+        { "mana": 30, "cooldown": 4.0, "range": 8.0, "dps": 13, "duration": 6.0, "max_stacks": 3 }
+      ]
+    },
+    {
+      "id": "fan_of_knives", "name": "Fan of Knives", "kind": "normal", "heroes": ["shadow"], "archetype": "agi", "icon": "FK", "color": "#d9a8ff",
+      "target": "self", "anim": ["2H_Melee_Attack_Spinning", 1.2],
+      "description": "Klingenwirbel: trifft alle Gegner um dich. Stufe 3: vergiftet zusätzlich (1 Stapel).",
+      "costs": [300, 350, 500], "scaling": { "agi": 1.1 },
+      "levels": [
+        { "mana": 35, "cooldown": 8.0, "radius": 4.0, "damage": 30, "poison": 0 },
+        { "mana": 40, "cooldown": 8.0, "radius": 4.5, "damage": 40, "poison": 0 },
+        { "mana": 40, "cooldown": 7.0, "radius": 5.0, "damage": 60, "poison": 1 }
+      ]
+    },
+    {
+      "id": "smoke_bomb", "name": "Smoke Bomb", "kind": "normal", "heroes": ["shadow"], "archetype": "agi", "icon": "SM", "color": "#9aa3b5",
+      "target": "point", "anim": ["Throw", 2.0],
+      "description": "Rauchwolke: Gegner darin werden stark verlangsamt, du wirst schneller (Flucht, Kontrolle).",
+      "costs": [300, 350, 500], "scaling": {},
+      "levels": [
+        { "mana": 45, "cooldown": 14.0, "range": 10.0, "radius": 3.5, "slow": 0.35, "duration": 3.0, "move": 0.25 },
+        { "mana": 45, "cooldown": 13.0, "range": 10.0, "radius": 4.0, "slow": 0.45, "duration": 3.5, "move": 0.3 },
+        { "mana": 45, "cooldown": 12.0, "range": 11.0, "radius": 4.5, "slow": 0.55, "duration": 4.0, "move": 0.35 }
+      ]
+    },
+    {
+      "id": "fireball", "name": "Fireball", "kind": "normal", "heroes": ["arcanist"], "archetype": "int", "icon": "FB", "color": "#ff8a3a",
+      "target": "point", "anim": ["kk/Fireball_Cast", 1.0],
+      "description": "Feuerball auf einen Punkt: voller Schaden im Zentrum, halber Schaden im Umkreis.",
+      "costs": [300, 350, 500], "scaling": { "int": 1.6 },
+      "levels": [
+        { "mana": 50, "cooldown": 6.0, "range": 13.0, "damage": 30, "radius": 2.5 },
+        { "mana": 55, "cooldown": 5.5, "range": 13.0, "damage": 60, "radius": 3.0 },
+        { "mana": 60, "cooldown": 5.0, "range": 14.0, "damage": 95, "radius": 3.5 }
+      ]
+    },
+    {
+      "id": "frost_nova", "name": "Frost Nova", "kind": "normal", "heroes": ["arcanist"], "archetype": "int", "icon": "FN", "color": "#9fe6ff",
+      "target": "self", "anim": ["2H_Melee_Attack_Chop", 1.8, 0.35],
+      "description": "Eiswelle um dich: Schaden und starke Verlangsamung.",
+      "costs": [300, 350, 500], "scaling": { "int": 1.0 },
+      "levels": [
+        { "mana": 60, "cooldown": 10.0, "radius": 5.0, "damage": 20, "slow": 0.4, "duration": 2.5 },
+        { "mana": 65, "cooldown": 9.0, "radius": 6.0, "damage": 40, "slow": 0.5, "duration": 2.5 },
+        { "mana": 70, "cooldown": 8.0, "radius": 7.0, "damage": 65, "slow": 0.6, "duration": 3.0 }
+      ]
+    },
+    {
+      "id": "chain_lightning", "name": "Chain Lightning", "kind": "normal", "heroes": ["arcanist"], "archetype": "int", "icon": "CL", "color": "#b8c8ff",
+      "target": "enemy", "anim": ["2H_Melee_Attack_Stab", 2.0, 0.4],
+      "description": "Blitz, der zwischen Gegnern überspringt (−15 % je Sprung).",
+      "costs": [300, 350, 500], "scaling": { "int": 1.3 },
+      "levels": [
+        { "mana": 55, "cooldown": 8.0, "range": 11.0, "damage": 25, "jumps": 3, "jump_range": 6.0 },
+        { "mana": 60, "cooldown": 7.0, "range": 11.0, "damage": 45, "jumps": 4, "jump_range": 6.5 },
+        { "mana": 65, "cooldown": 6.0, "range": 12.0, "damage": 70, "jumps": 5, "jump_range": 7.0 }
+      ]
+    },
+    {
+      "id": "healing_pulse", "name": "Healing Pulse", "kind": "normal", "heroes": ["arcanist"], "archetype": "int", "icon": "HP", "color": "#7dff9a",
+      "target": "self", "anim": ["Spellcast_Long", 2.6],
+      "description": "Heilt dich und Verbündete im Umkreis. Überheilung zählt nicht.",
+      "costs": [300, 350, 500], "scaling": { "int": 1.8 },
+      "levels": [
+        { "mana": 60, "cooldown": 10.0, "radius": 8.0, "heal": 30 },
+        { "mana": 65, "cooldown": 9.0, "radius": 9.0, "heal": 70 },
+        { "mana": 70, "cooldown": 8.0, "radius": 10.0, "heal": 110 }
+      ]
+    },
+    {
+      "id": "bastion", "name": "Bastion", "kind": "ultimate", "heroes": ["guardian"], "archetype": "str", "icon": "BA", "color": "#5aa9ff",
+      "target": "self", "anim": ["kk/Melee_Block", 1.0],
+      "description": "Ultimate: Du erleidest viel weniger Schaden, nahe Verbündete etwas weniger. Gegner in der Nähe werden kurz verspottet.",
+      "costs": [900, 1100, 1400], "scaling": {},
+      "levels": [
+        { "mana": 100, "cooldown": 110.0, "radius": 8.0, "self_reduction": 0.5, "ally_reduction": 0.2, "duration": 6.0, "taunt": 1.5 },
+        { "mana": 100, "cooldown": 100.0, "radius": 9.0, "self_reduction": 0.55, "ally_reduction": 0.25, "duration": 7.0, "taunt": 2.0 },
+        { "mana": 100, "cooldown": 90.0, "radius": 10.0, "self_reduction": 0.6, "ally_reduction": 0.3, "duration": 8.0, "taunt": 2.5 }
+      ]
+    },
+    {
+      "id": "iron_maelstrom", "name": "Iron Maelstrom", "kind": "normal", "heroes": ["guardian"], "archetype": "str", "icon": "IM", "color": "#a9c8ff",
+      "target": "self", "anim": ["2H_Melee_Attack_Spinning", 1.5],
+      "description": "Klingenwirbel: 2,5–3 s frei beweglich, trifft alle Gegner im Umkreis 4-mal pro Sekunde, jeder Treffer kann kritisch sein, der nächste Gegner nimmt mehr Schaden. Dabei 10–20 % weniger Schaden.",
+      "costs": [320, 380, 520], "scaling": { "str": 0.35 },
+      "levels": [
+        { "mana": 70, "cooldown": 20.0, "duration": 2.5, "radius": 2.8, "interval": 0.25, "damage": 6, "near_bonus": 0.3, "crit": 0.15, "reduction": 0.1 },
+        { "mana": 75, "cooldown": 18.0, "duration": 2.5, "radius": 3.0, "interval": 0.25, "damage": 10, "near_bonus": 0.3, "crit": 0.2, "reduction": 0.15 },
+        { "mana": 80, "cooldown": 16.0, "duration": 3.0, "radius": 3.3, "interval": 0.25, "damage": 14, "near_bonus": 0.3, "crit": 0.25, "reduction": 0.2 }
+      ]
+    },
+    {
+      "id": "shadow_dance", "name": "Shadow Dance", "kind": "ultimate", "heroes": ["shadow"], "archetype": "agi", "icon": "SD", "color": "#b67cff",
+      "target": "self", "anim": ["Dodge_Forward", 0.8],
+      "description": "Ultimate: kurze Phase mit viel Tempo, Angriffstempo und kritischen Treffern.",
+      "costs": [900, 1100, 1400], "scaling": {},
+      "levels": [
+        { "mana": 80, "cooldown": 100.0, "duration": 6.0, "move": 0.4, "haste": 0.5, "crit": 0.2 },
+        { "mana": 80, "cooldown": 95.0, "duration": 7.0, "move": 0.45, "haste": 0.6, "crit": 0.25 },
+        { "mana": 80, "cooldown": 90.0, "duration": 8.0, "move": 0.5, "haste": 0.7, "crit": 0.3 }
+      ]
+    },
+    {
+      "id": "blade_dance", "name": "Blade Dance", "kind": "ultimate", "heroes": ["shadow"], "archetype": "agi", "icon": "BD", "color": "#d27cff",
+      "target": "enemy", "anim": ["Dualwield_Melee_Attack_Slice", 2.6],
+      "description": "Ultimate: 6-8 blitzschnelle Sprünge um ein Ziel, jeder mit eigenem Krit-Wurf. Dabei unverwundbar. Alternative zu Shadow Dance.",
+      "costs": [900, 1100, 1400], "scaling": { "agi": 1.2 },
+      "levels": [
+        { "mana": 90, "cooldown": 110.0, "range": 6.0, "hits": 6, "damage": 30, "duration": 0.5, "radius": 1.8 },
+        { "mana": 95, "cooldown": 100.0, "range": 6.5, "hits": 7, "damage": 40, "duration": 0.55, "radius": 1.8 },
+        { "mana": 100, "cooldown": 90.0, "range": 7.0, "hits": 8, "damage": 50, "duration": 0.6, "radius": 1.8 }
+      ]
+    },
+    {
+      "id": "dagger_cyclone", "name": "Dagger Cyclone", "kind": "ultimate", "heroes": ["shadow"], "archetype": "agi", "icon": "DC", "color": "#c9b6ff",
+      "target": "self", "anim": ["2H_Melee_Attack_Spinning", 1.6],
+      "description": "Ultimate: wirbelt 2,5 s auf der Stelle und wirft Messer auf die 3 nächsten Gegner. Bewegen bricht ab. Alternative zu Shadow Dance.",
+      "costs": [900, 1100, 1400], "scaling": { "agi": 0.45 },
+      "levels": [
+        { "mana": 100, "cooldown": 110.0, "duration": 2.5, "radius": 5.5, "interval": 0.2, "damage": 16 },
+        { "mana": 100, "cooldown": 100.0, "duration": 2.5, "radius": 6.0, "interval": 0.2, "damage": 24 },
+        { "mana": 100, "cooldown": 90.0, "duration": 2.5, "radius": 6.5, "interval": 0.2, "damage": 32 }
+      ]
+    },
+    {
+      "id": "glacial_rift", "name": "Glacial Rift", "kind": "ultimate", "heroes": ["arcanist"], "archetype": "int", "icon": "GR", "color": "#9fe6ff",
+      "target": "point", "anim": ["kk/Ranged_Magic_Shoot", 1.6],
+      "description": "Ultimate: Eisstacheln brechen in einer Linie aus dem Boden, schleudern alle Gegner in der Bahn hoch und verlangsamen sie stark. Das Eis bleibt kurz als Hindernis stehen. Alternative zu Starfall.",
+      "costs": [900, 1100, 1400], "scaling": { "int": 0.9 },
+      "levels": [
+        { "mana": 120, "cooldown": 100.0, "range": 7.0, "damage": 60, "lift": 0.75, "slow": 0.5, "slow_time": 2.0, "wall_time": 1.5 },
+        { "mana": 130, "cooldown": 95.0, "range": 8.0, "damage": 95, "lift": 0.85, "slow": 0.55, "slow_time": 2.0, "wall_time": 1.8 },
+        { "mana": 140, "cooldown": 90.0, "range": 9.0, "damage": 130, "lift": 1.0, "slow": 0.6, "slow_time": 2.5, "wall_time": 2.0 }
+      ]
+    },
+    {
+      "id": "starfall", "name": "Starfall", "kind": "ultimate", "heroes": ["arcanist"], "archetype": "int", "icon": "SF", "color": "#ffe27a",
+      "target": "point", "anim": ["kk/Ranged_Magic_Summon", 2.6],
+      "description": "Ultimate: Meteore regnen auf ein Gebiet. Einschlagstellen sind kurz vorher markiert.",
+      "costs": [900, 1100, 1400], "scaling": { "int": 0.9 },
+      "levels": [
+        { "mana": 150, "cooldown": 110.0, "range": 14.0, "radius": 6.0, "impacts": 8, "impact_radius": 2.0, "damage": 30, "duration": 3.0 },
+        { "mana": 160, "cooldown": 100.0, "range": 14.0, "radius": 6.5, "impacts": 10, "impact_radius": 2.2, "damage": 40, "duration": 3.0 },
+        { "mana": 170, "cooldown": 90.0, "range": 15.0, "radius": 7.0, "impacts": 12, "impact_radius": 2.4, "damage": 50, "duration": 3.0 }
+      ]
+    },
+    {
+      "id": "sanctuary", "name": "Sanctuary", "kind": "ultimate", "heroes": ["arcanist"], "archetype": "int", "icon": "SA", "color": "#7dff9a",
+      "target": "self", "anim": ["kk/Sanctuary_Cast", 1.0],
+      "description": "Ultimate (Guardian-Blessing-Variante): stärkt das ganze Team – weniger Schaden und Heilung. Alternative zu Starfall.",
+      "costs": [900, 1100, 1400], "scaling": { "int": 2.0 },
+      "levels": [
+        { "mana": 120, "cooldown": 120.0, "reduction": 0.3, "duration": 6.0, "heal": 60 },
+        { "mana": 120, "cooldown": 110.0, "reduction": 0.35, "duration": 6.0, "heal": 100 },
+        { "mana": 120, "cooldown": 100.0, "reduction": 0.4, "duration": 7.0, "heal": 140 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/arena.gd" id="1_arena"]
+[ext_resource type="Shader" path="res://assets/effects/floor_grid.gdshader" id="2_floor"]
+
+[sub_resource type="Environment" id="Environment_arena"]
+background_mode = 1
+background_color = Color(0.04, 0.05, 0.08, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.55, 0.6, 0.78, 1)
+ambient_light_energy = 0.6
+tonemap_mode = 2
+ssao_enabled = true
+glow_enabled = true
+glow_intensity = 0.6
+glow_bloom = 0.05
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
+size = Vector2(76, 76)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_floor"]
+render_priority = 0
+shader = ExtResource("2_floor")
+shader_parameter/base_color = Color(0.3, 0.31, 0.34, 1)
+shader_parameter/line_color = Color(0.17, 0.18, 0.2, 1)
+shader_parameter/tile_size = 4.0
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(76, 1, 76)
+
+[node name="Arena" type="Node3D"]
+script = ExtResource("1_arena")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_arena")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-58, -30, 0)
+light_color = Color(0.85, 0.88, 1, 1)
+light_energy = 0.9
+shadow_enabled = true
+directional_shadow_max_distance = 90.0
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="Mesh" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("PlaneMesh_floor")
+surface_material_override/0 = SubResource("ShaderMaterial_floor")
+
+[node name="Collision" type="CollisionShape3D" parent="Floor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+shape = SubResource("BoxShape3D_floor")
+
+[node name="SpawnPaths" type="Node3D" parent="."]
+
+[node name="North" type="Node3D" parent="SpawnPaths"]
+
+[node name="P0" type="Marker3D" parent="SpawnPaths/North"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -29.5)
+
+[node name="P1" type="Marker3D" parent="SpawnPaths/North"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -20)
+
+[node name="P2" type="Marker3D" parent="SpawnPaths/North"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, -11)
+
+[node name="West" type="Node3D" parent="SpawnPaths"]
+
+[node name="P0" type="Marker3D" parent="SpawnPaths/West"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.5, 0, 6)
+
+[node name="P1" type="Marker3D" parent="SpawnPaths/West"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, 10)
+
+[node name="P2" type="Marker3D" parent="SpawnPaths/West"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, 5)
+
+[node name="East" type="Node3D" parent="SpawnPaths"]
+
+[node name="P0" type="Marker3D" parent="SpawnPaths/East"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.5, 0, 6)
+
+[node name="P1" type="Marker3D" parent="SpawnPaths/East"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21, 0, -2)
+
+[node name="P2" type="Marker3D" parent="SpawnPaths/East"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 0, -3)
+
+[node name="HeroSpawn" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 5.5)
+
+[node name="Decor" type="Node3D" parent="."]

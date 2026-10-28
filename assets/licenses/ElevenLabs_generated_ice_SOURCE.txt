@@ -1,0 +1,9 @@
+assets/audio/ice/ice_erupt_1.mp3 bis ice_erupt_4.mp3, ice_shatter_1.mp3 bis ice_shatter_4.mp3
+
+Herkunft: am 2026-10-28 mit ElevenLabs (Modell eleven_text_to_sound_v2, Soundeffekte) über das
+ElevenLabs-Konto des Projektinhabers generiert.
+- ice_erupt: Welle großer Eiskristalle, die aus Steinboden brechen (für Glacial Rift beim Wirken)
+- ice_shatter: große Eiskristalle zersplittern (Ende von Glacial Rift)
+
+Keine Fremdinhalte. Die Nutzungsrechte (z. B. kommerzielle Verwendung) richten sich nach dem
+ElevenLabs-Tarif des Kontos, mit dem generiert wurde – vor einer Veröffentlichung dort prüfen.

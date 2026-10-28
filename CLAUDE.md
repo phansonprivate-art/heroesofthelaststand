@@ -28,6 +28,7 @@ Koop-Hero-Defense (1–4 Spieler) in **Godot 4.4.1 / GDScript**. Helden verteidi
 ## Werkzeuge und Pfade
 - Godot: `C:\Users\phant\Godot\Godot_v4.4.1-stable_win64.exe` (Konsole: `..._console.exe`), nicht im PATH.
 - Blender 5.2: `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`, nur headless (`--background --python script.py -- args`).
+- GitHub (**öffentlich**): https://github.com/phansonprivate-art/heroesofthelaststand, Zweig `main`. Commit/Push nur auf Wunsch des Spielers; Autor ist die noreply-Adresse (lokale git-Konfiguration), keine private E-Mail. `.godot/` wird nicht hochgeladen.
 - Spiel starten: `Spiel starten.cmd` (Projektordner) oder Desktop-Verknüpfung „Heroes of the Last Stand“.
 - Fähigkeiten-Vorschau mit Effekten: `tools/skill_showcase.cmd` (`-- --skill=<id>`). Modell-Viewer Helden: `tools/model_viewer.cmd`.
 - Tests: `bash tools/run_tests.sh` (Filter: `TEST_ONLY=<teil des Testnamens>`); schlägt auch bei SCRIPT ERROR fehl. Aktuell 97 Tests, alle grün. Der Läufer zeigt Meldungen nur bei Fehlern; Texte zur Sichtprüfung kurz per `print` im Test ausgeben und danach wieder entfernen. Python ist nicht installiert (für Skripte bash/perl oder das Edit-Werkzeug nutzen).

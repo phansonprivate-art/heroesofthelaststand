@@ -576,3 +576,26 @@ Rückmeldung des Spielers: Der Brunnen muss deutlich weiter weg, damit Spieler w
 - **Raten:** Leben und Mana 2,5 % → 1 % pro Sekunde; eine volle Heilung dauert ~100 s, länger als jede Einkaufspause (30–50 s).
 - Die vorher wegen des Brunnens verlegten Prüfplätze in `test_abilities.gd` und `test_bosses.gd` sind wieder an ihren ursprünglichen Stellen (z = 12–18), die jetzt frei sind.
 - 102 Tests bestanden. Bildschirmfoto aus einer echten Runde zeigt den Brunnen am Südrand ohne Überschneidungen. Nicht gegengespielt.
+
+## 2026-10-29 – Diener lassen sich nicht mehr risikofrei auskiten (GitHub-Issue #3)
+
+Fehlerbericht #3: Ein Nahkämpfer kann einen Diener angreifen und sofort weglaufen, ohne dass der Diener seine Angriffsanimation ausführt.
+- **Ursachen im Code (`scripts/enemies/enemy.gd`):**
+  1. **Reichweiten ungleich:** Nahkampfhelden treffen aus größerer Entfernung als Diener. Guardian bis 2,65 m Mittenabstand, Knochenläufer erst ab 2,1 m; der Diener musste also erst herantreten.
+  2. **Zusammenzucken:** Jeder spürbare Treffer ließ den Gegner 0,2 s erstarren, und in dieser Zeit griff er gar nicht an. Bei Dienern ist das praktisch jeder Heldenschlag.
+  3. **Angriffspause:** Hatte der Diener gerade auf den Kern geschlagen, wartete er die volle Pause ab (bis 2 s), bevor er sich gegen den Helden wehrte.
+- **Änderungen:**
+  - `_attack_reach()`: Gegen Nahkampfhelden ist die Schlagweite mindestens die Reichweite des Helden + 0,1 m. Fernkampfgegner und Fernkampfhelden sind unverändert.
+  - Zusammenzucken hält nur noch an; der Gegenschlag geht vor.
+  - `RETALIATE_DELAY` (0,15 s) gilt beim Wechsel vom Kern auf einen Helden, nur dort; im Dauerkampf bleibt das Angriffsintervall.
+- **Tests:** neue Datei `tests/test_kiting.gd` mit 5 Tests:
+  - gegenseitige Reichweite ohne Herantreten,
+  - Zuschlagen-und-Weglaufen kassiert den Gegenschlag,
+  - Auskiten ohne Zuschlagen bleibt möglich,
+  - Fernkampfhelden unverändert,
+  - kein schnelleres Schlagen im Dauerkampf.
+  - Gegen den alten Code schlagen die beiden Kerntests fehl (Diener trat 0,48 m heran; kein Gegenschlag); mit der Änderung bestehen sie.
+- 107 Tests bestanden.
+- **Nicht geprüft:**
+  - Ob Treffermoment (`attack_hit_delay`) und Schlagbild der Gegner-Animationen genau zusammenfallen, habe ich nicht Bild für Bild nachgemessen.
+  - Im echten Spiel nicht angespielt.

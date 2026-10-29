@@ -54,6 +54,12 @@ Gemeinsam für alle:
 
 Die vier neuen Figuren sind eigene Blender-Modelle (`tools/blender_build_enemies.py`) auf dem KayKit-Skelett.
 
+**Nahkampf gegen Helden (Issue #3, 2026-10-29):** Diener und andere Nahkampfgegner lassen sich nicht mehr risikofrei auskiten.
+- **Gegenseitige Reichweite:** Ein Nahkampfgegner erreicht einen Nahkampfhelden mindestens aus dessen eigener Schlagweite – wer treffen kann, kann auch getroffen werden.
+- **Zurückschlagen trotz Zusammenzucken:** Das kurze Zucken bei Treffern hält den Gegner nur an, der Gegenschlag geht vor.
+- **Schnelle Reaktion:** Wechselt ein Gegner vom Kern auf einen Helden, ist er nach spätestens 0,15 s schlagbereit, statt die volle Pause eines Kernschlags abzuwarten. Im Dauerkampf gilt das normale Angriffsintervall.
+- **Auskiten bleibt möglich:** Wer die Reichweite verlässt, bevor der Schlag einschlägt (Ausholzeit des Gegners), wird nicht getroffen. Gegen Fernkampfhelden ändert sich nichts.
+
 **Endboss Morvath (drei Phasen nach Lebenspunkten, `data.boss`):**
 1. **ab 100 %:** Fernkampfgeschosse; beschwört alle 14 s vier Skelette, deren Beschwörungskreise 1,2 s vorher am Boden erscheinen.
 2. **unter 66 % – Seelenfeuer:** zusätzlich grüne Kreise unter bis zu drei Helden; nach 1,5 s Explosion. Wer ausweicht, bleibt heil.

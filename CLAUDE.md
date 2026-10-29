@@ -30,6 +30,7 @@ Koop-Hero-Defense (1–4 Spieler) in **Godot 4.4.1 / GDScript**. Helden verteidi
 - **Stilrichtung (2026-10-29):** Helden mit realistischen Proportionen wie im Konzeptbild des Spielers (seit 2026-10-29 alle drei Helden umgesetzt). Vorlagen dienen nur als Stilvorbild – eigene Formen, keine Kopien (z. B. eigener Sonnenstern statt Löwenwappen).
 - Standardangriffe Krieger: Hieb, Diagonalhieb, **Stich** (der KayKit-Querhieb sah mit langen Proportionen wie ein Kopfstoß aus).
 - **Brunnen der Erholung** (Issue #2) am Südrand, **bewusst 25,5 m vom Kern** (Heilen soll an der Basis fehlen): im Wirkkreis nur **1 %** Leben/Mana pro Sekunde (vom Spieler deutlich gesenkt), **nur Bewegung – keine Angriffe, keine Zauber** (Zustand `sanctuary`). Werte in `data/balance/game.json` → `fountain`. Testplätze für Kampf-Tests nicht in den Wirkkreis legen (z = 21,5–29,5 bei x ≈ 0 ist Brunnen).
+- **Nahkampf fair** (Issue #3): Nahkampfgegner erreichen Nahkampfhelden aus deren eigener Reichweite, Zusammenzucken blockiert den Gegenschlag nicht, beim Wechsel vom Kern auf einen Helden nach spätestens 0,15 s schlagbereit. Auskiten nur noch durch Timing (raus vor dem Einschlag).
 - Bei langen Aufgaben **nach jeder Phase einen Stand mit Vorschaubild** geben, dann weitermachen.
 
 ## Werkzeuge und Pfade
@@ -38,7 +39,7 @@ Koop-Hero-Defense (1–4 Spieler) in **Godot 4.4.1 / GDScript**. Helden verteidi
 - GitHub (**öffentlich**): https://github.com/phansonprivate-art/heroesofthelaststand, Zweig `main`. Commit/Push nur auf Wunsch des Spielers; Autor ist die noreply-Adresse (lokale git-Konfiguration), keine private E-Mail. `.godot/` wird nicht hochgeladen.
 - Spiel starten: `Spiel starten.cmd` (Projektordner) oder Desktop-Verknüpfung „Heroes of the Last Stand“.
 - Fähigkeiten-Vorschau mit Effekten: `tools/skill_showcase.cmd` (`-- --skill=<id>`). Modell-Viewer Helden: `tools/model_viewer.cmd`. Drachen-Viewer: `tools/dragon_viewer.cmd` (G = Größenvergleich, `-- --shots=<ordner>` für Bilder).
-- Tests: `bash tools/run_tests.sh` (Filter: `TEST_ONLY=<teil des Testnamens>`); schlägt auch bei SCRIPT ERROR fehl. Aktuell 102 Tests, alle grün. Der Läufer zeigt Meldungen nur bei Fehlern; Texte zur Sichtprüfung kurz per `print` im Test ausgeben und danach wieder entfernen. Python ist nicht installiert (für Skripte bash/perl oder das Edit-Werkzeug nutzen).
+- Tests: `bash tools/run_tests.sh` (Filter: `TEST_ONLY=<teil des Testnamens>`); schlägt auch bei SCRIPT ERROR fehl. Aktuell 107 Tests, alle grün. Der Läufer zeigt Meldungen nur bei Fehlern; Texte zur Sichtprüfung kurz per `print` im Test ausgeben und danach wieder entfernen. Python ist nicht installiert (für Skripte bash/perl oder das Edit-Werkzeug nutzen).
 - Neue Assets vor `-s`-Skripten importieren: `godot --headless --path . --import`.
 - Bildschirmfotos/Sichtprüfung: temporäre Szene `tools/_tmp_*.tscn` (nicht headless, echtes Rendering) und danach löschen; Bilder in den Scratchpad legen.
 

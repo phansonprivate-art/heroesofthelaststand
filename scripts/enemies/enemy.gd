@@ -16,6 +16,10 @@ const THREAT_LEASH_MARGIN := 4.0   ## so viel weiter als die Trefferdistanz wird
 const STAGGER_SECONDS := 0.2
 const STAGGER_COOLDOWN := 0.8
 const STAGGER_MIN_RATIO := 0.04
+## Wird ein Gegner von einem Helden angegriffen, den er bisher nicht im Visier hatte, wehrt er sich nach spätestens
+## dieser Zeit – statt erst die volle Angriffspause eines Schlags auf den Kern abzuwarten (Issue #3: Auskiten)
+const RETALIATE_DELAY := 0.15
+const REACH_MARGIN := 0.1        ## Nahkampfgegner erreichen einen Nahkampfhelden knapp an dessen eigener Reichweite
 
 @onready var health: HealthComponent = $Health
 @onready var visual: CharacterVisual = $Visual
@@ -125,11 +129,10 @@ func _physics_process(delta: float) -> void:
 	_attack_cooldown -= delta
 	_threat_left -= delta
 	_stagger_cooldown -= delta
-	if _stagger_left > 0.0:
+	# Zusammenzucken hält den Gegner nur an; zurückschlagen darf er trotzdem (sonst lädt jeder Treffer zum Weglaufen ein)
+	var staggered := _stagger_left > 0.0
+	if staggered:
 		_stagger_left -= delta
-		velocity = Vector3.ZERO
-		_choose_target(delta)   # Zielwechsel (z. B. auf den Angreifer) auch während des Zuckens
-		return
 	if status.is_stunned():
 		_windup_left = -1.0
 		_cancel_ability()
@@ -142,24 +145,32 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector3.ZERO
 		return
 	_update_windup(delta)
+	var previous := target
 	_choose_target(delta)
+	# Wechsel vom Kern auf einen Helden (bemerkt oder angegriffen): schnell schlagbereit statt die Pause eines
+	# Schlags auf den Kern abzuwarten. Nur bei diesem Wechsel – im Dauerkampf gilt das normale Angriffsintervall.
+	if target is Hero and not (previous is Hero) and _windup_left < 0.0:
+		_attack_cooldown = minf(_attack_cooldown, RETALIATE_DELAY)
 
 	var desired := Vector3.ZERO
 	var face_point := Vector3.ZERO
 	var has_face := false
 	if target != null:
 		var dist := _distance_to_target()
-		if dist <= data.attack_range:
+		if dist <= _attack_reach():
 			state = State.ATTACK
 			face_point = target.global_position
 			has_face = true
 			if _attack_cooldown <= 0.0 and _windup_left < 0.0:
+				_stagger_left = 0.0   # der Gegenschlag geht dem Zusammenzucken vor
+				staggered = false
 				_start_attack()
 		else:
 			state = State.ADVANCE
-			desired = _advance_direction()
+			if not staggered:
+				desired = _advance_direction()
 
-	if spawner != null:
+	if spawner != null and not staggered:
 		desired += spawner.separation(self) * 0.8
 	if desired.length_squared() > 0.0001 and _windup_left < 0.0:
 		desired = desired.normalized()
@@ -217,6 +228,18 @@ func _hero_in_range(hero: Node3D, radius: float) -> bool:
 		and _flat(hero.global_position - global_position).length() <= radius
 
 
+## Schlagweite gegen das aktuelle Ziel. Nahkampfgegner erreichen einen Nahkampfhelden mindestens aus dessen
+## eigener Reichweite: wer mich treffen kann, den kann ich auch treffen. Sonst schlägt ein Held aus sicherer
+## Entfernung zu und ist weg, bevor der Gegner herangetreten ist (Issue #3). Fernkämpfer bleiben auskitebar.
+func _attack_reach() -> float:
+	var reach: float = data.attack_range
+	if data.projectile.is_empty() and target is Hero and (target as Hero).data.projectile.is_empty():
+		var hero := target as Hero
+		# Held trifft bis Mittenabstand (Reichweite + mein Körper); mein Maß ist Mittenabstand − 0,5
+		reach = maxf(reach, hero.stats.attack_range() + body_radius - 0.5 + REACH_MARGIN)
+	return reach
+
+
 func _distance_to_target() -> float:
 	var d := _flat(target.global_position - global_position).length()
 	if target == core:
@@ -256,7 +279,7 @@ func _update_windup(delta: float) -> void:
 	_windup_left = -1.0
 	if target == null or not is_instance_valid(target) or not target.call("is_alive"):
 		return
-	if _distance_to_target() > data.attack_range + 0.8:
+	if _distance_to_target() > _attack_reach() + 0.8:
 		return
 	var amount: float = (data.structure_damage if target == core else data.damage) * damage_multiplier
 	if data.projectile.is_empty():

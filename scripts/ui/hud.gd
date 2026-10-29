@@ -5,7 +5,8 @@ extends CanvasLayer
 ## Zeigt nur Werte an, die es im Spiel tatsächlich gibt; neue Anzeigen kommen mit ihren Systemen.
 
 const STATUS_NAMES := {"slow": "Verlangsamt", "stun": "Betäubt", "poison": "Vergiftet", "taunt": "Verspottet",
-	"damage_reduction": "Geschützt", "haste": "Eile", "swift": "Schnell", "crit_bonus": "Kritisch", "armor_bonus": "Gepanzert"}
+	"damage_reduction": "Geschützt", "haste": "Eile", "swift": "Schnell", "crit_bonus": "Kritisch", "armor_bonus": "Gepanzert",
+	"untargetable": "Unverwundbar", "channel": "Kanalisiert", "whirl": "Wirbelt", "sanctuary": "Am Brunnen – Erholung, kein Kampf"}
 const XP_COLOR := Color(0.72, 0.5, 1.0)
 
 var _match: MatchController

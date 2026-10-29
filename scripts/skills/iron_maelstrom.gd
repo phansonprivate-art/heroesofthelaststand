@@ -64,6 +64,8 @@ func _exit_tree() -> void:
 
 
 func _tick() -> void:
+	if hero.status.has(StatusEffects.SANCTUARY):   # am Brunnen wird nicht gekämpft – auch der Wirbel trifft nicht
+		return
 	var center := hero.global_position
 	var foes: Array[Enemy] = world.spawner.enemies_in_radius(center, radius)
 	var nearest: Enemy = null

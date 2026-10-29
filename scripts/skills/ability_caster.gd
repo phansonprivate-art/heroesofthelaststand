@@ -123,6 +123,8 @@ func check_cast(slot: int) -> String:
 		return "Du bist gefallen."
 	if hero.status.is_stunned():
 		return "Betäubt."
+	if hero.status.has(StatusEffects.SANCTUARY):
+		return "Am Brunnen der Erholung wird nicht gekämpft."
 	if cooldown_left(id) > 0.0:
 		return "%s lädt noch %.0f s." % [GameData.skill(id).name, ceilf(cooldown_left(id))]
 	if hero.mana < mana_cost(id):

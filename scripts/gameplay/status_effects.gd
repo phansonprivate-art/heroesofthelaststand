@@ -21,6 +21,7 @@ const ARMOR_BONUS := "armor_bonus"
 const UNTARGETABLE := "untargetable"   ## unverwundbar und für Gegner unsichtbar (Blade Dance); die Fähigkeit führt den Helden
 const CHANNEL := "channel"             ## kanalisiert (Dagger Cyclone): steht still, ein Bewegungsbefehl bricht ab
 const WHIRL := "whirl"                 ## wirbelt (Iron Maelstrom): läuft frei, aber keine normalen Angriffe
+const SANCTUARY := "sanctuary"         ## am Brunnen der Erholung: nur Bewegung – keine Angriffe, keine Zauber
 const CONTROL := [SLOW, STUN, TAUNT]
 const MAX_DAMAGE_REDUCTION := 0.75
 

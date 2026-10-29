@@ -954,6 +954,20 @@ func _ramp(stops: Array) -> Gradient:
 	return g
 
 
+## Bausteine für dauerhafte Effekte (z. B. am Brunnen der Erholung): nicht auf MAX_ACTIVE angerechnet,
+## Platzierung und Aufräumen übernimmt der Aufrufer.
+func make_particles(amount: int, lifetime: float, size: float, color: Color, tex := "") -> CPUParticles3D:
+	return _particles(amount, lifetime, size, color, true, tex)
+
+
+func make_flat_material(tex_name: String, additive := true) -> StandardMaterial3D:
+	return _flat_material(tex_name, additive)
+
+
+func make_curve(points: Array) -> Curve:
+	return _curve(points)
+
+
 func _curve(points: Array) -> Curve:
 	var c := Curve.new()
 	for pt in points:

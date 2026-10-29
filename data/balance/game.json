@@ -10,6 +10,13 @@
   "arena": {
     "path_count": 3
   },
+  "fountain": {
+    "_comment": "Brunnen der Erholung am hinteren Arenarand, bewusst weit vom Kern (Heilen kostet Zeit an der Basis): Anteil von Leben/Mana pro Sekunde im Wirkkreis; dort nur Bewegung, kein Kampf.",
+    "position": [0.0, 0.0, 25.5],
+    "radius": 4.0,
+    "hp_per_second": 0.01,
+    "mana_per_second": 0.01
+  },
   "waves": {
     "default_prepare_seconds": 12.0,
     "enemy_hp_growth_per_wave": 0.08,

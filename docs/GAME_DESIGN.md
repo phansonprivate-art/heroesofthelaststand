@@ -95,6 +95,14 @@ Helden ziehen Gegner also schon durch ihre Nähe auf sich. Das ist die Grundlage
 
 10.000 LP. Rückmeldung bei Treffern: Kristall blitzt, Kamera wackelt leicht, Schadenszahl. Unter 25 % gilt er als **kritisch**: roter Balken, pulsierender roter Bildschirmrand, Warnbanner. Bei 0 LP: Niederlage, Gegner jubeln.
 
+## Brunnen der Erholung (umgesetzt, Issue #2)
+
+Am hinteren (südlichen) Arenarand, **25,5 m vom Kern** und abseits aller Gegnerwege – bewusst weit weg (Wunsch des Spielers): Wer sich heilt, fehlt rund 9 s Laufweg plus Heilzeit an der Basis. Aussehen: achteckiges Steinbecken mit leuchtendem Wasser und einem schwebenden Kristall (eigenes Blender-Modell). Ein drehender Runenkreis am Boden zeigt den **Wirkkreis (4 m)**.
+- **Erholung:** Helden im Kreis erhalten **1 %** ihres maximalen Lebens und Manas pro Sekunde zusätzlich zur eigenen Regeneration (auf Wunsch des Spielers deutlich unter den ursprünglichen 2,5 %). Volle Heilung dauert rund 100 s – länger als jede Einkaufspause; eine Hilfe, kein Ersatz für Tränke oder Heiler. Betreten und Verlassen verstärkt nichts, gefallene Helden werden weder geheilt noch belebt.
+- **Kein Kampf:** Im Kreis ist nur Bewegung möglich (Wunsch des Spielers): keine Angriffe, keine Zauber, kein automatisches Anvisieren. Ein Schlag im Ausholen trifft nicht, der Klingenwirbel macht keinen Schaden. Zauber werden mit „Am Brunnen der Erholung wird nicht gekämpft.“ abgelehnt. Beim Verlassen ist der Held sofort wieder kampfbereit.
+- **Rückmeldung:** Lichtfunken steigen aus dem Wasser, ein blaues Licht pulsiert, erholende Helden funkeln; das HUD zeigt den Zustand „Am Brunnen – Erholung, kein Kampf“.
+- Werte in `data/balance/game.json` → `fountain` (Lage, Radius, Raten). Gegner sind nicht betroffen.
+
 ## Steuerung (entschieden am 2026-10-27)
 
 Die Vorgabe "WASD-Bewegung" und "Fähigkeiten auf Q W E R T Y" belegte W doppelt. **Entscheidung des Spielers: MOBA-Steuerung** (vertraut aus League of Legends):

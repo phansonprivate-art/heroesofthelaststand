@@ -345,7 +345,7 @@ func test_dagger_cyclone(t) -> void:
 	hero.gain_xp(100000)
 	_learn(t, m, "dagger_cyclone")
 	var foes := m.spawner.alive_enemies().duplicate()
-	var center := Vector3(0, 0, 14)
+	var center := Vector3(0, 0, 14)   # zwischen Kern und Brunnen der Erholung (im Brunnen wird nicht gekämpft)
 	hero.global_position = center
 	# vier Gegner in 2, 3, 4 und 5 m, einer außerhalb des Radius
 	for i in foes.size():
@@ -397,7 +397,7 @@ func test_iron_maelstrom(t) -> void:
 	hero.rng.seed = 12345   # Krit-Würfe reproduzierbar
 	_learn(t, m, "iron_maelstrom")
 	var foes := m.spawner.alive_enemies().duplicate()
-	var center := Vector3(0, 0, 14)
+	var center := Vector3(0, 0, 14)   # zwischen Kern und Brunnen der Erholung (im Brunnen wird nicht gekämpft)
 	hero.global_position = center
 	for i in foes.size():
 		var e: Enemy = foes[i]
@@ -438,7 +438,7 @@ func test_glacial_rift(t) -> void:
 	hero.gain_xp(100000)
 	_learn(t, m, "glacial_rift")
 	var foes := m.spawner.alive_enemies().duplicate()
-	var center := Vector3(0, 0, 14)
+	var center := Vector3(0, 0, 14)   # zwischen Kern und Brunnen der Erholung (im Brunnen wird nicht gekämpft)
 	hero.global_position = center
 	# in der Bahn bei 2,5 m und 6,2 m, einer seitlich daneben, einer hinter dem Ende der Bahn (7 m auf Stufe 1)
 	var spots := [Vector3(2.5, 0, 0), Vector3(6.2, 0, 0.4), Vector3(4.0, 0, 3.0), Vector3(9.5, 0, 0)]

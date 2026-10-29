@@ -542,3 +542,37 @@ Rückmeldung des Spielers: Beim dritten Standardangriff stößt der Krieger mit 
   - Stahl ist heller und nur halb metallisch (Rauheit 0,3); die Schwertklinge ist breiter. Krieger und Assassine sind neu exportiert.
 - **Behobener Fehler im Spielcode:** `CharacterVisual.animation_length()` und `play()` würfelten bei mehreren Varianten getrennt. Das Tempo konnte deshalb für eine andere Animation berechnet sein als die gespielte. Jetzt wird die gemessene Variante gespielt (`_next_pick`); das gilt für Helden und Gegner.
 - 97 Tests bestanden, `verify_custom_models.gd`: ALLES OK. Im echten Spiel nicht gespielt.
+
+## 2026-10-29 – Brunnen der Erholung (GitHub-Issue #2)
+
+Wunsch aus Issue #2: ein Brunnen hinter der Basis, der Helden in der Nähe langsam Leben und Mana regeneriert. Dazu der Spieler: „im Radius vom Brunnen kann man sich nur bewegen aber nicht angreifen oder casten“. Der im Issue verlinkte Brunnen aus einem anderen Spiel diente nur als Mechanik-Vorbild; Name, Modell und Effekte sind eigen.
+- **Spiellogik:** `scripts/gameplay/recovery_fountain.gd` (`RecoveryFountain`), angelegt von `MatchController` (`fountain`).
+  - Lage, Radius und Raten: `data/balance/game.json` → `fountain` (Lage (0, 0, 11) hinter dem Kern, Radius 4 m, je 2,5 % Leben und Mana pro Sekunde).
+  - Heilung ohne Quelle: Sie zählt wie die eigene Regeneration nicht als belohnbare Heilung.
+  - Der Brunnen rechnet vor den Helden (`process_physics_priority = -10`), damit der Zustand schon im Bild des Betretens gilt.
+- **Kein Kampf im Kreis:** neuer Zustand `StatusEffects.SANCTUARY`, laufend erneuert und beim Verlassen sofort entfernt. Er sperrt:
+  - den Angriffsstart und das automatische Anvisieren (`Hero`), einen laufenden Schlag beim Auflösen,
+  - Zauber (`AbilityCaster.check_cast`, wirkt auch für Zauber aus der Warteschlange),
+  - die Treffer des Klingenwirbels (`IronMaelstrom._tick`).
+- **Modell:** `tools/blender_build_fountain.py` → `assets/models/environment_custom/RecoveryFountain.glb`. Achteckiges Steinbecken, Säule mit oberer Schale; die Steintextur ist gebacken (Quader, Körnung, Umgebungsverdeckung). Wasser und Runenband leuchten; der Kristall ist das Objekt „Crystal“, das Spiel dreht ihn und lässt ihn schweben.
+- **Effekte:** Runenkreis am Boden in Größe des Wirkkreises (dreht langsam), schwacher Schimmer der Fläche, aufsteigende Lichtfunken, pulsierendes blaues Licht, Funken an erholenden Helden. Dafür hat `VfxLayer` neue Helfer für dauerhafte Effekte: `make_particles`, `make_flat_material`, `make_curve`. Der Brunnen ist ein fester Körper (Helden laufen um das Becken).
+- **HUD:** Deutsche Namen für die Zustände „sanctuary“, „whirl“, „channel“ und „untargetable“; die letzten drei wurden bisher roh angezeigt.
+- **Tests:** neue Datei `tests/test_fountain.gd` mit 5 Tests:
+  - Lage hinter dem Kern und abseits der Wege,
+  - Regeneration nur im Kreis, nachgemessen gegen die Spielzeit,
+  - kein Stapeln durch Rein und Raus,
+  - kein Kampf im Kreis, aber sofort wieder kampfbereit draußen,
+  - keine Heilung Gefallener.
+  - Drei Tests in `test_abilities.gd` und einer in `test_bosses.gd` nutzten den ruhigen Platz hinter dem Kern (z = 12–14). Er liegt jetzt im Brunnen, deshalb sind diese Prüfplätze nach z = 20–26 verlegt.
+- **Geprüft:**
+  - 102 Tests bestanden.
+  - Bildschirmfoto aus einer echten Runde: Brunnen, Runenkreis, abgelehnter Zauber mit Hinweis im HUD, steigende Leben- und Manawerte.
+- **Nicht geprüft:** Die Raten sind nicht gegengespielt. Einen eigenen Klang hat der Brunnen nicht.
+
+## 2026-10-29 – Brunnen weiter weg, Heilung deutlich schwächer
+
+Rückmeldung des Spielers: Der Brunnen muss deutlich weiter weg, damit Spieler wirklich zwischen Heilen und Basisverteidigung abwägen müssen. Außerdem ist die Heilung zu stark.
+- **Lage:** (0, 0, 11) → (0, 0, 25,5), also an den Südrand vor die Mauer, 25,5 m vom Kern. Bei 5,6–6,2 m/s Lauftempo sind das rund 4–4,5 s pro Weg. Der Test prüft jetzt mindestens 20 m Abstand zum Kern.
+- **Raten:** Leben und Mana 2,5 % → 1 % pro Sekunde; eine volle Heilung dauert ~100 s, länger als jede Einkaufspause (30–50 s).
+- Die vorher wegen des Brunnens verlegten Prüfplätze in `test_abilities.gd` und `test_bosses.gd` sind wieder an ihren ursprünglichen Stellen (z = 12–18), die jetzt frei sind.
+- 102 Tests bestanden. Bildschirmfoto aus einer echten Runde zeigt den Brunnen am Südrand ohne Überschneidungen. Nicht gegengespielt.

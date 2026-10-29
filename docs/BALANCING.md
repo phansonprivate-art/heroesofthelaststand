@@ -18,6 +18,8 @@ Alle Werte stehen in `data/` und sind ohne Codeänderung anpassbar. Die Zahlen h
 | `rewards.wave_bonus_gold` | 150 | je Spieler und abgeschlossener Welle (Vorgabe) |
 | `rewards.wave_xp_base` / `wave_xp_per_wave` | 40 / 10 | Wellen-XP = 40 + 10 · Welle |
 | `rewards.xp_share_radius` | 16 m | XP für Helden in dieser Nähe zum besiegten Gegner |
+| `fountain.position` / `radius` | (0, 0, 25,5) / 4 m | Brunnen der Erholung am Südrand, 25,5 m vom Kern (Heilen kostet Zeit an der Basis) |
+| `fountain.hp_per_second` / `mana_per_second` | 0,01 / 0,01 | Anteil von max. Leben/Mana pro Sekunde im Wirkkreis (von 0,025 gesenkt; Volle Heilung ~100 s; nicht gegengespielt) |
 
 **Spielerskalierung:** bewusst nicht linear. Bei 4 Spielern haben Gegner das 2,8-Fache der LP statt des 4-Fachen. **Wellenskalierung:** Neben der Zusammensetzung steigen LP und Schaden je Welle leicht, in Welle 10 um +72 % LP und +45 % Schaden.
 

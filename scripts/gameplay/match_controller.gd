@@ -36,6 +36,7 @@ var waves_override: Array = []
 var phase := Phase.RUNNING
 var local_hero: Hero
 var heroes: Array[Hero] = []
+var fountain: RecoveryFountain   ## Brunnen der Erholung hinter dem Kern
 var elapsed := 0.0
 
 
@@ -82,6 +83,10 @@ func _ready() -> void:
 	telemetry.bind(self, Session.telemetry_directory(), Session.telemetry_enabled())
 	match_audio.bind(self)
 	vfx.bind(self)
+	fountain = RecoveryFountain.new()
+	fountain.name = "Fountain"
+	add_child(fountain)
+	fountain.setup(GameData.balance.get("fountain", {}), heroes, vfx)
 	wave_manager.start()
 
 

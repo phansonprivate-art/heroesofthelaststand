@@ -211,14 +211,15 @@ func _physics_process(delta: float) -> void:
 			desired = to_target
 	else:
 		_validate_target()
-		if attack_target == null:
+		var resting := status.has(StatusEffects.SANCTUARY)
+		if attack_target == null and not resting:   # am Brunnen nicht von selbst losstürmen
 			_auto_acquire(AUTO_ACQUIRE_BONUS)
 		if attack_target != null:
 			face_point = attack_target.global_position
 			var dist := _flat_dist(attack_target)
 			if dist > _reach(attack_target):
 				desired = _flat(attack_target.global_position - global_position)
-			elif _attack_cooldown <= 0.0 and _windup_left < 0.0 and not status.has(StatusEffects.WHIRL):
+			elif _attack_cooldown <= 0.0 and _windup_left < 0.0 and not status.has(StatusEffects.WHIRL) and not resting:
 				_start_attack(attack_target)
 
 	if desired.length_squared() > 0.0001:
@@ -259,6 +260,8 @@ func _update_windup(delta: float) -> void:
 	var target := _windup_target
 	_windup_target = null
 	if target == null or not is_instance_valid(target) or not target.is_alive() or _flat_dist(target) > _reach(target) + 0.6:
+		return
+	if status.has(StatusEffects.SANCTUARY):   # während des Ausholens den Brunnen betreten: kein Treffer
 		return
 	var roll := stats.roll_attack(rng, status.magnitude(StatusEffects.CRIT_BONUS))
 	if not data.projectile.is_empty() and projectile_root != null:

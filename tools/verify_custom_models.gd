@@ -4,9 +4,9 @@ extends SceneTree
 ##   godot --headless --path . -s res://tools/verify_custom_models.gd
 
 const CASES := [
-	{"id": "guardian", "custom": "res://assets/models/heroes_custom/Guardian.glb", "original": "res://assets/models/heroes/Knight.glb", "old_body": ["Knight_Body", "Knight_Head", "Knight_ArmLeft", "Knight_ArmRight", "Knight_LegLeft", "Knight_LegRight", "Knight_Helmet", "Knight_Cape"]},
-	{"id": "shadow", "custom": "res://assets/models/heroes_custom/Shadow.glb", "original": "res://assets/models/heroes/Rogue_Hooded.glb", "old_body": ["Rogue_Body", "Rogue_Head_Hooded", "Rogue_ArmLeft", "Rogue_ArmRight", "Rogue_LegLeft", "Rogue_LegRight", "Rogue_Cape"]},
-	{"id": "arcanist", "custom": "res://assets/models/heroes_custom/Arcanist.glb", "original": "res://assets/models/heroes/Mage.glb", "old_body": ["Mage_Body", "Mage_Head", "Mage_ArmLeft", "Mage_ArmRight", "Mage_LegLeft", "Mage_LegRight", "Mage_Hat", "Mage_Cape"]},
+	{"id": "guardian", "custom": "res://assets/models/heroes_custom/Guardian.glb", "original": "res://assets/models/heroes/Knight.glb", "old_body": ["Knight_Body", "Knight_Head", "Knight_ArmLeft", "Knight_ArmRight", "Knight_LegLeft", "Knight_LegRight", "Knight_Helmet", "Knight_Cape"], "own_weapons": true},
+	{"id": "shadow", "custom": "res://assets/models/heroes_custom/Shadow.glb", "original": "res://assets/models/heroes/Rogue_Hooded.glb", "old_body": ["Rogue_Body", "Rogue_Head_Hooded", "Rogue_ArmLeft", "Rogue_ArmRight", "Rogue_LegLeft", "Rogue_LegRight", "Rogue_Cape"], "own_weapons": true},
+	{"id": "arcanist", "custom": "res://assets/models/heroes_custom/Arcanist.glb", "original": "res://assets/models/heroes/Mage.glb", "old_body": ["Mage_Body", "Mage_Head", "Mage_ArmLeft", "Mage_ArmRight", "Mage_LegLeft", "Mage_LegRight", "Mage_Hat", "Mage_Cape"], "own_weapons": true},
 ]
 const CORE_BONES := ["root", "hips", "spine", "chest", "head", "upperarm.l", "lowerarm.l", "hand.l", "upperarm.r", "lowerarm.r", "hand.r", "upperleg.l", "lowerleg.l", "foot.l", "toes.l", "upperleg.r", "lowerleg.r", "foot.r", "toes.r"]
 
@@ -95,7 +95,8 @@ func _initialize() -> void:
 		var equip_o := names_o.filter(func(n): return not (n in c.old_body))
 		var equip_missing := equip_o.filter(func(n): return not (n in names_c))
 		print("  Ausrüstungs-Meshes original=", equip_o, " davon im neuen Modell fehlend=", equip_missing)
-		if not equip_missing.is_empty():
+		# realistische Helden (gestrecktes Skelett, eigene Waffen) ersetzen die KayKit-Ausrüstung bewusst
+		if not equip_missing.is_empty() and not c.get("own_weapons", false):
 			all_ok = false
 		print("  Neue Körperteile (", names_c.filter(func(n): return not (n in names_o)).size(), "): ", names_c.filter(func(n): return not (n in names_o)))
 

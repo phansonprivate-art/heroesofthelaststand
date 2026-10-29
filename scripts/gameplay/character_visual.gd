@@ -7,7 +7,7 @@ extends Node3D
 const LOOPING := ["idle", "run"]
 const EXTRA_LIBRARY := "kk"
 
-static var _library_cache: Dictionary = {}   ## "Skelettpfad|Bibliotheken" -> umgerechnete AnimationLibrary
+static var _library_cache: Dictionary = {}   ## "Modell|Skelettpfad|Bibliotheken" -> umgerechnete AnimationLibrary
 
 var anim_player: AnimationPlayer
 var anim_map: Dictionary = {}
@@ -15,6 +15,7 @@ var _model: Node3D
 var _meshes: Array[MeshInstance3D] = []
 var _current := ""
 var _action := ""   ## aktuelle Einzelanimation (leer bei Schleifen wie Laufen/Stehen)
+var _next_pick: Dictionary = {}   ## logisch -> bei animation_length() gewürfelte Variante für das nächste play()
 var _flash_material: StandardMaterial3D
 var _flash_left := 0.0
 var _tint_material: StandardMaterial3D
@@ -65,15 +66,41 @@ func add_animation_libraries(paths: Array) -> void:
 	if skeletons.is_empty():
 		return
 	var root := anim_player.get_node(anim_player.root_node)
-	var skeleton_path := String(root.get_path_to(skeletons[0]))
-	var key := "%s|%s" % [skeleton_path, "|".join(PackedStringArray(paths))]
+	var skeleton: Skeleton3D = skeletons[0]
+	var skeleton_path := String(root.get_path_to(skeleton))
+	# Modelle mit gestrecktem Skelett (z. B. der Assassine) brauchen eigene Positionsspuren: Schlüssel je Modell
+	var key := "%s|%s|%s" % [_model.scene_file_path, skeleton_path, "|".join(PackedStringArray(paths))]
 	if not _library_cache.has(key):
-		_library_cache[key] = _build_library(paths, skeleton_path)
+		_library_cache[key] = _build_library(paths, skeleton_path, skeleton)
 	if not anim_player.has_animation_library(EXTRA_LIBRARY):
 		anim_player.add_animation_library(EXTRA_LIBRARY, _library_cache[key])
 
 
-static func _build_library(paths: Array, skeleton_path: String) -> AnimationLibrary:
+## Positionsspuren gelten relativ zur Ruhepose und wachsen mit der Knochenstreckung:
+## Ziel = Ruhepose Ziel + (Wert − Ruhepose Quelle) × (Länge Ziel / Länge Quelle). Bei gleichem Skelett ändert sich
+## nichts; bei gestreckten Knochen (Assassine) sitzen Hüfte, Schultern und Beine an der richtigen Stelle.
+static func _retarget_positions(anim: Animation, source: Skeleton3D, target: Skeleton3D) -> void:
+	if source == null or target == null:
+		return
+	for t in anim.get_track_count():
+		if anim.track_get_type(t) != Animation.TYPE_POSITION_3D:
+			continue
+		var bone_name := String(anim.track_get_path(t)).get_slice(":", 1)
+		var si := source.find_bone(bone_name)
+		var ti := target.find_bone(bone_name)
+		if si < 0 or ti < 0:
+			continue
+		var src_rest := source.get_bone_rest(si).origin
+		var dst_rest := target.get_bone_rest(ti).origin
+		if (dst_rest - src_rest).length_squared() < 1e-10:
+			continue
+		var ratio := dst_rest.length() / src_rest.length() if src_rest.length() > 0.05 else 1.0
+		for k in anim.track_get_key_count(t):
+			var value: Vector3 = anim.track_get_key_value(t, k)
+			anim.track_set_key_value(t, k, dst_rest + (value - src_rest) * ratio)
+
+
+static func _build_library(paths: Array, skeleton_path: String, target: Skeleton3D = null) -> AnimationLibrary:
 	var lib := AnimationLibrary.new()
 	for path in paths:
 		if not ResourceLoader.exists(path):
@@ -85,10 +112,13 @@ static func _build_library(paths: Array, skeleton_path: String) -> AnimationLibr
 			scene.free()
 			continue
 		var src: AnimationPlayer = players[0]
+		var src_skeletons := scene.find_children("*", "Skeleton3D", true, false)
+		var src_skeleton: Skeleton3D = src_skeletons[0] if not src_skeletons.is_empty() else null
 		for anim_name in src.get_animation_list():
 			if anim_name == "T-Pose" or lib.has_animation(anim_name):
 				continue
 			var anim: Animation = src.get_animation(anim_name).duplicate(true)
+			_retarget_positions(anim, src_skeleton, target)
 			for t in anim.get_track_count():
 				var track := String(anim.track_get_path(t))
 				var colon := track.find(":")
@@ -103,7 +133,11 @@ static func _build_library(paths: Array, skeleton_path: String) -> AnimationLibr
 func play(logical: String, speed := 1.0, restart := false) -> float:
 	if anim_player == null:
 		return 0.0
-	var anim_name := _resolve(logical)
+	# Wurde die Länge vorher abgefragt, genau diese Variante spielen (sonst passt das berechnete Tempo nicht)
+	var anim_name: String = _next_pick.get(logical, "")
+	_next_pick.erase(logical)
+	if anim_name == "":
+		anim_name = _resolve(logical)
 	if not anim_player.has_animation(anim_name):
 		return 0.0
 	var looping := logical in LOOPING
@@ -143,10 +177,13 @@ func is_busy() -> bool:
 	return anim_player != null and _action != "" and _current == _action and anim_player.is_playing()
 
 
+## Länge einer logischen Animation. Bei mehreren Varianten (z. B. drei Angriffe) wird hier gewürfelt und die
+## Wahl für das nächste play() desselben Namens gemerkt.
 func animation_length(logical: String) -> float:
 	if anim_player == null:
 		return 0.0
 	var anim_name := _resolve(logical)
+	_next_pick[logical] = anim_name
 	return anim_player.get_animation(anim_name).length if anim_player.has_animation(anim_name) else 0.0
 
 

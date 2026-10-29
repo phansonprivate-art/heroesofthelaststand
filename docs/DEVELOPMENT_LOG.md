@@ -467,3 +467,78 @@ Wunsch des Spielers: Beim Verbessern soll man sehen, was sich ändert.
 - **Fähigkeiten (Shop):** Beim Verbessern zeigt der Shop „Verbesserung Stufe X → Y“ und listet nur die geänderten Werte als alt → neu, z. B. „Mana 50 → 55 · Abklingzeit 6 s → 5.5 s · Schaden 78 → 115 · Radius 2.5 m → 3 m“. Skalierende Werte sind für den eigenen Helden ausgerechnet, also mit Attributen. Vor dem Lernen steht die volle Stufe 1, auf Stufe 3 die vollen Werte. Neu: `UiTheme.format_skill_upgrade`.
 - **Attribute (Shop und Charakterfenster C):** „+1 bringt: …“ zeigt die genauen Zugewinne, z. B. „Leben +20 · LP-Reg. +0.1/s · Rüstung +0.12“, zusätzlich „Fähigkeiten: <Name> +N Schaden“ für gelernte, skalierende Fähigkeiten (diese Zeile ist von keinem Test abgedeckt). Über dem Soft Cap sind die Werte automatisch halbiert. Neu: `StatBlock.preview_with_point` (Kopie, verändert nichts) und `AbilityEffects.power_for_stats`.
 - Neuer Test `test_upgrade_preview_texts`. Er prüft, dass die Werte mit der echten Wirkung übereinstimmen und die Vorschau nichts verändert. 97 Tests bestanden.
+
+## 2026-10-29 – Glutdrache in Blender gebaut
+
+Wunsch des Spielers: einen Drachen in Blender „so gut wie möglich“ bauen. Die Vorlage war ein Konzeptbild, das der Spieler mitgebracht hat, und diente nur als Stilvorbild. Name, Form und Details sind eigene Entwürfe. Das Modell ist komplett per Skript gebaut: `tools/blender_build_dragon.py`, eigenes Skelett, keine Pack-Modelle.
+- **Phasen** (jede mit `--stage <name> --preview <ordner>` einzeln prüfbar):
+  1. Körper: Metaball-Ketten plus ein Kopf aus Querschnitten (Loft), per Voxel-Remesh zu einem geschlossenen Mesh vereint.
+  2. Details: Unterkiefer, Zähne, Hörner, Rückenstacheln (per Raycast auf die Oberfläche gesetzt), Schwanzklinge, Krallen, leuchtende Augen.
+  3. Flügel: Finger- und Armknochen, Flughaut als Gitter je Feld, mit eingebuchteter Hinterkante und Gewichten aus den Nachbarknochen.
+  4. Skelett: 42 Knochen; der Rumpf ist automatisch gewichtet, wobei Flügel- und Kieferknochen ausgeschlossen sind; alle Teile sitzen starr am Knochen.
+  5. Texturen: prozedurale Schuppen, Bauchplatten und Glut, gebacken zu Farbe (mit Umgebungsverdeckung), Normal-Map und Leuchten. Horn-Farbverläufe und Flughaut-Adern werden direkt per numpy gemalt.
+  6. Animationen: Idle, Walk, Attack_Bite, Attack_Claw, Fire_Breath, Roar, Hit, Death, Fly.
+  7. Export nach `assets/models/enemies_custom/EmberDrake.glb` (10,7 MB).
+- **Godot-Prüfung:** Import geprüft: 42 Knochen, 9 Animationen, Materialien mit Textur, Normal-Map, Leuchten und doppelseitiger Flughaut. Bildschirmfotos im echten Rendering bestätigen Ausrichtung und Texturen. Der Drache schaut wie die KayKit-Modelle nach +Z; `CharacterVisual` dreht ihn wie alle Figuren.
+- **Hinweis zum Import ohne Fenster:** Godot meldet dabei „Parameter "t" is null“ aus dem Ersatz-Renderer (`texture_storage.h`). Im echten Rendering sind die Texturen vorhanden.
+- **Neues Werkzeug:** `tools/dragon_viewer.cmd` zeigt alle Animationen, mit Taste G für den Größenvergleich mit dem Guardian. Für Bildschirmfotos: `-- --shots=<ordner>`.
+- **Noch nicht im Spiel:** Der Drache hat keinen Eintrag in `enemies.json` und kommt in keiner Welle vor. Ob er als Boss oder Mini-Boss mit Feuerodem kommt, entscheidet der Spieler.
+- Der Körper hat ~56 000 Dreiecke, das ist viel für eine Figur. Falls die Bildrate leidet: `target_faces` in `stage_body` senken.
+- 97 Tests bestanden (Spielcode unverändert).
+
+## 2026-10-29 – Neuer Assassine (Shadow) mit realistischen Proportionen
+
+Wunsch des Spielers: den Assassinen so bauen wie im Konzeptbild. Seine Entscheidung: realistische Proportionen, Ersatz für das Shadow-Modell, Guardian und Arcanist bleiben vorerst gedrungen. Bauplan: `tools/blender_build_assassin.py`; er nutzt den Baukasten aus `blender_build_dragon.py`.
+- **Skelett:** Das KayKit-Rogue-Skelett wird nur in den Knochenabständen gestreckt (`OFFSET_SCALE`), alle Drehachsen bleiben. Ergebnis: Hüftgelenk 0,97, Knie 0,52, Schultern 1,60, Kopfgelenk 1,74, Gesamthöhe 1,94 (etwa 7,5 Köpfe).
+- **Animationen:** Die 76 eingebauten KayKit-Animationen bleiben erhalten. Ihre Positionsschlüssel skaliert das Skript mit der Streckung (`scale_action_locations`), sonst schwebt der Körper etwa im Tod über dem Boden. Für die Zusatz-Bibliotheken rechnet `CharacterVisual._retarget_positions` die Positionsspuren zur Laufzeit um: Ziel = Ruhepose + (Wert − Quell-Ruhepose) × Längenverhältnis. Bei gleichem Skelett, also bei Guardian und Arcanist, ändert sich nichts. Der Bibliotheks-Zwischenspeicher gilt jetzt je Modell.
+- **Körper und Ausrüstung:** Körper aus Metaballs, automatisch gewichtet. Rüstungsteile entstehen als abgehobene Schalen aus Hautbereichen; sie übernehmen die Gewichte 1:1, ihre Ränder sind geglättet, der Saum ist eine eigene Fläche.
+  - Kopf: Kapuze mit Überwurf (aus Metaballs, Gesichtsöffnung ausgeschnitten), rote Maske, Sturmhaube mit glühenden Augen.
+  - Rumpf: Brustpanzer, Schulterplatten in drei Lagen, Kreuzgurt, Schärpe, Gürtel.
+  - Arme: Armschienen mit Stacheln.
+  - Beine: Lendentücher vorn und hinten, Beinriemen als Ringe entlang der Beinkontur, Knieschützer, Stiefel.
+  - Dolche: zwei gebogene Dolche in der Griffachse der alten KayKit-Messer.
+- **Texturen:** Ein Mesh mit einem Material. Gebacken sind Farbe (Lederkorn, Stoffkörnung, Saumrille, Umgebungsverdeckung), Normal-Map, Rauheit/Metall (ORM) und Leuchten. Werkstoffnummern werden im Shader hart umgeschaltet, weil gemischte Nummern falsche Werkstoffe ergaben (leuchtende Kapuzenränder).
+- **Einbau:** `assets/models/heroes_custom/Shadow.glb` (13,2 MB, ~76 000 Flächen) ist überschrieben; das alte Modell liegt im Git-Verlauf (Commit 0cc9b6b). In `heroes.json`: `model_scale` 0,9 → 1,05, `hidden_parts` leer.
+- **Geprüft:**
+  - Bildschirmfotos aus dem Modell-Viewer zeigen Stehen, Laufen, Tod und alle Fähigkeiten, darunter Sprunghieb und Doppelklingen-Angriffe aus der Zusatz-Bibliothek.
+  - `verify_custom_models.gd`: ALLES OK. Die fehlende KayKit-Ausrüstung ist beim Shadow jetzt als `own_weapons` erlaubt.
+  - 97 Tests bestanden.
+- **Nicht geprüft:** Das Spiel selbst mit dem neuen Modell habe ich nicht gespielt. Die KayKit-Bewegungen sind für gedrungene Figuren gemacht und wirken auf langen Beinen breitbeinig.
+
+## 2026-10-29 – Krieger und Magier im realistischen Stil, gemeinsamer Bauplan
+
+Wunsch des Spielers: Krieger (Guardian) und Magier (Arcanist) wie den Assassinen nachziehen.
+- **Gemeinsamer Bauplan:** `tools/blender_build_assassin.py` heißt jetzt `tools/blender_build_realistic_heroes.py` und baut alle drei Helden (`--hero shadow|guardian|arcanist`). Skelett, Körper, Schalen, Backen und Export teilen sie sich; die Ausrüstung ist je Held eigen (`outfit_<held>`). Je Held lassen sich Streckwerte (`offset`, Krieger: breitere Schultern) und Körperbau (`body`: torso/limbs) einstellen.
+- **Werkstoffe:** jetzt 16 statt 9 – neu sind Gold, blauer Plattenstahl, blauer Stoff, Bart, blaues Augenleuchten, Kristall und Holz. Rauheit, Metall und Leuchtfarbe sind je Werkstoff festgelegt. Die Werkstoffnummern gelten je Fläche (`regions_per_face`), weil gemischte Nummern durch fremde Werkstoffe laufen: zwischen Haut und blauem Stoff leuchtete ein Punkt rot.
+- **Krieger:**
+  - Rüstung: blau-goldene Plattenrüstung, Brustpanzer, zwei Bauchreifen, Halsberge, Schulterplatten in drei Lagen.
+  - Arme: Ober- und Unterarmschienen, Ellbogenkacheln, Stahlhandschuhe.
+  - Beine: Beintaschen, Oberschenkelplatten, Kniekacheln, Beinschienen, Stahlschuhe.
+  - Darüber: blauer Wappenrock mit Goldsaum, Umhang.
+  - Kopf: Topfhelm mit T-Sehschlitz, Goldkamm und Goldrändern.
+  - Waffen: Langschwert (Klinge 0,77 m) und Dreiecksschild mit eigenem achtstrahligem Sonnenstern.
+- **Magier:**
+  - Robe und Kopf: blaue Kapuzenrobe mit Goldsaum und hängendem Kapuzenzipfel, Glockenärmel (weiten sich zum Handgelenk), langer Robenrock mit Goldsaum und goldenem Mittelstreifen. Der Rock hängt zwischen den Beinen: Gewichte gemischt aus Becken, Ober- und Unterschenkeln.
+  - Gesicht: weißer Bart mit Schnurrbart, buschige Brauen, kräftige Nase, blau glühende Augen.
+  - Zubehör: goldener Gürtel mit Kordel, Ledertasche.
+  - Stab: knorriger Holzstab mit Goldbändern und einer Gabel, die einen leuchtenden Kristall hält.
+- **Waffen:** Eigene Waffen werden im Rahmen der Original-KayKit-Waffe gebaut (`weapon_frames`/`weapon_axes`, Maße mit Objekt-Skalierung). Der Schild richtet seine Oberseite nach der Stehanimation aus.
+- **Behobener Fehler:** Der glTF-Import hängt eine Animation an das Skelett. Die Waffen wurden daher in einer Animationspose statt in der Ruhepose vermessen. Jetzt wird vor dem Vermessen die Ruhepose gesetzt. Deshalb liegen auch die Dolche des Assassinen jetzt wie die Original-Messer in der Hand; er ist neu exportiert.
+- **Einbau:** `Guardian.glb` (13,1 MB, ~87 000 Flächen) und `Arcanist.glb` (13,2 MB, ~82 000 Flächen) sind überschrieben, die alten Modelle liegen im Git-Verlauf (Commit 0cc9b6b). In `heroes.json` gilt für alle drei `model_scale` 1,05 und `hidden_parts` ist leer. `verify_custom_models.gd` erlaubt bei allen drei eigene Waffen (`own_weapons`).
+- **Geprüft:**
+  - `verify_custom_models.gd`: ALLES OK (je 76 Animationen, alle 20 Fähigkeits-Animationen vorhanden).
+  - 97 Tests bestanden.
+  - Bildschirmfotos aus dem Modell-Viewer: alle drei nebeneinander, Stehen, Laufen, Tod und jede Fähigkeit.
+- **Auffällig, aber gewollt:** Der Magier hält den Stab in der KayKit-Stehpose waagerecht nach vorn; so sind auch die Zauber-Animationen ausgelegt.
+- **Nicht geprüft:** Im echten Spiel gespielt habe ich keinen der drei. Mit ~80 000 Flächen pro Held sind die Modelle schwer; bei Bedarf `target_faces` und die Schalen verringern.
+
+## 2026-10-29 – Krieger: Angriff 3 sah aus wie ein Kopfstoß
+
+Rückmeldung des Spielers: Beim dritten Standardangriff stößt der Krieger mit dem Kopf statt mit dem Schwert.
+- **Ursache 1:** `1H_Melee_Attack_Slice_Horizontal` schwingt das Schwert zur Seite und hält es dort, während Oberkörper und Kopf nach vorn kippen. Mit den langen realistischen Proportionen liest sich das von oben als Kopfstoß. Die Phasenbilder schräg von oben haben das bestätigt.
+- **Ursache 2:** Der Stahl war voll metallisch. In Godot spiegelt er nur den dunklen Hintergrund, die Klinge wirkte schwarz und war kaum zu sehen.
+- **Änderungen:**
+  - Angriff 3 ist jetzt `1H_Melee_Attack_Stab`; der Vorstoß liegt bei 0,35 s nach Tempoanpassung, genau beim Treffermoment.
+  - Stahl ist heller und nur halb metallisch (Rauheit 0,3); die Schwertklinge ist breiter. Krieger und Assassine sind neu exportiert.
+- **Behobener Fehler im Spielcode:** `CharacterVisual.animation_length()` und `play()` würfelten bei mehreren Varianten getrennt. Das Tempo konnte deshalb für eine andere Animation berechnet sein als die gespielte. Jetzt wird die gemessene Variante gespielt (`_next_pick`); das gilt für Helden und Gegner.
+- 97 Tests bestanden, `verify_custom_models.gd`: ALLES OK. Im echten Spiel nicht gespielt.

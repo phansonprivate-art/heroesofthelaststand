@@ -92,6 +92,11 @@ func bind(m: MatchController) -> void:
 	m.spawner.enemy_spawned.connect(_on_enemy_spawned)
 	m.camera_rig.lock_changed.connect(func(locked: bool) -> void:
 		show_banner("Kamera fixiert" if locked else "Kamera gelöst", "" if locked else "Mauszeiger an den Bildschirmrand: verschieben  ·  Leertaste: zentrieren", UiTheme.TEXT, 1.2))
+	if Session.test_mode:   # Testmodus deutlich kennzeichnen
+		var tag := UiTheme.label("TESTMODUS  ·  Stufe %d  ·  ab Welle %d  ·  %s" % [Session.test_level, Session.test_wave, "Gold unbegrenzt" if Session.test_unlimited_gold else "maximales Startgold"], 15, UiTheme.ACCENT)
+		tag.add_theme_constant_override("outline_size", 5)
+		UiTheme.place(tag, Control.PRESET_TOP_LEFT, 16, 12, 460, 34)
+		add_child(tag)
 	var hero := m.local_hero
 	_hero_name.text = "%s  ·  %s" % [hero.data.name, hero.data.role]
 	_hero_name.add_theme_color_override("font_color", hero.data.color)

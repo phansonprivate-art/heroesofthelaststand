@@ -322,8 +322,8 @@
       "id": "morvath",
       "name": "Morvath",
       "category": "boss",
-      "model": "res://assets/models/enemies_custom/Morvath.glb",
-      "model_scale": 2.0,
+      "model": "res://assets/models/enemies_custom/MorvathHexer.glb",
+      "model_scale": 1.45,
       "max_hp": 8000,
       "move_speed": 1.8,
       "damage": 45,
@@ -341,26 +341,27 @@
       "projectile": { "speed": 12.0, "color": "#9dff7a" },
       "boss": {
         "title": "Morvath, der Totenbeschwörer",
+        "phase_anim": "Staff_Slam",
         "phase_hp": [0.66, 0.33],
         "phase_texts": [
           ["Morvath", ""],
           ["Seelenfeuer!", "Grüne Kreise am Boden explodieren – raus da!"],
           ["Morvath rast!", "Die Todeswelle naht – verlasst den violetten Ring!"]
         ],
-        "summon": { "cooldown": [14.0, 12.0, 10.0], "warning": 1.2, "first_delay": 5.0,
+        "summon": { "cooldown": [14.0, 12.0, 10.0], "warning": 1.2, "first_delay": 5.0, "anim": "Staff_Slam",
           "enemies": [["grunt", "grunt", "grunt", "seer"], ["runner", "runner", "grunt", "seer"], ["brute", "runner", "runner", "seer"]] },
         "soulfire": { "from_phase": 2, "cooldown": [7.0, 7.0, 5.0], "warning": 1.5, "radius": 2.5, "damage": 70, "targets": 3, "first_delay": 2.0 },
         "deathwave": { "from_phase": 3, "cooldown": 11.0, "warning": 2.2, "radius": 9.0, "damage": 120, "first_delay": 3.0 },
         "enrage": { "attack_speed": 1.5, "move": 1.3 }
       },
       "anims": {
-        "idle": "Idle",
-        "run": "Walking_D_Skeletons",
+        "idle": "Hexer_Idle",
+        "run": "Walking_A",
         "attack": ["Spellcast_Shoot"],
-        "death": "Death_C_Skeletons",
+        "death": "Death_A",
         "hit": ["Hit_A"],
-        "spawn": "Spawn_Ground_Skeletons",
-        "cheer": "Taunt"
+        "spawn": "Staff_Slam",
+        "cheer": "Spellcast_Long"
       }
     }
   ]

@@ -14,6 +14,7 @@ var _balances: Dictionary = {}     ## peer_id -> int
 var _seen_refs: Dictionary = {}    ## "peer|ref" -> true
 var _log: Array[Dictionary] = []
 var _next_id := 1
+var unlimited := false   ## Testmodus: Ausgaben gelingen und werden gebucht, ziehen aber nichts vom Guthaben ab
 
 
 ## Team-Gold ist ein eigenes Konto (TEAM_PEER), getrennt vom persönlichen Gold.
@@ -70,9 +71,10 @@ func grant(peer_id: int, amount: int, reason: String, ref: String) -> bool:
 func spend(peer_id: int, amount: int, reason: String, ref: String) -> bool:
 	if not _accept(peer_id, amount, ref):
 		return false
-	if _balances[peer_id] < amount:
+	if _balances[peer_id] < amount and not unlimited:
 		return false
-	_balances[peer_id] -= amount
+	if not unlimited:
+		_balances[peer_id] -= amount
 	_record(peer_id, -amount, reason, ref)
 	return true
 

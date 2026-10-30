@@ -7,9 +7,9 @@ extends Node3D
 ##   godot --path . res://tools/model_viewer.tscn -- --shots=<ordner>
 
 const CUSTOM_MODELS := {
-	"guardian": "res://assets/models/heroes_custom/Guardian.glb",
-	"shadow": "res://assets/models/heroes_custom/Shadow.glb",
-	"arcanist": "res://assets/models/heroes_custom/Arcanist.glb",
+	"guardian": "res://assets/models/heroes_custom/GuardianTripo.glb",
+	"shadow": "res://assets/models/heroes_custom/ShadowTripo.glb",
+	"arcanist": "res://assets/models/heroes_custom/ArcanistTripo.glb",
 }
 const HERO_ORDER := ["guardian", "shadow", "arcanist"]
 const LOGICAL_LABELS := {"idle": "Stehen", "run": "Laufen", "attack": "Standardangriff", "cast": "Zaubern", "death": "Tod", "cheer": "Jubeln"}

@@ -32,5 +32,5 @@ func _try_attribute(hero: Hero, attribute: String) -> Dictionary:
 	if not gold.spend(hero.peer_id, cost, "attribute", ref):
 		return {"ok": false, "message": "Kauf abgelehnt."}
 	stats.add_bought_point(attribute)
-	var note := " (über dem Soft Cap: halbe Wirkung)" if stats.effective_bought(attribute) < stats.bought[attribute] else ""
-	return {"ok": true, "message": "%s +1 für %d Gold%s" % [name, cost, note]}
+	var note := " (über dem Soft Cap: halbe Wirkung)" if stats.bought[attribute] > int(stats.rules.upgrade.soft_cap) else ""   # dieser Kauf lag über dem Soft Cap
+	return {"ok": true, "message": "%s +%d für %d Gold%s" % [name, stats.points_per_buy(), cost, note]}

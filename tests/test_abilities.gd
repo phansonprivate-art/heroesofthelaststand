@@ -580,9 +580,10 @@ func test_upgrade_preview_texts(t) -> void:
 	t.check(up.contains("Schaden %d → %d" % [dmg1, dmg2]), "Schadenswerte stimmen mit der Wirkung überein (%d → %d)" % [dmg1, dmg2])
 	var mana_before := hero.stats.max_mana()
 	var attr := UiTheme.format_attribute_upgrade(hero, "int")
-	t.check(attr.contains("Mana +12") and attr.contains("Fähigkeitsstärke +1 %"), "Attribut: +1 Intelligenz zeigt die Zugewinne: %s" % attr)
+	var per := hero.stats.points_per_buy()
+	t.check(attr.contains("Mana +%d" % (12 * per)) and attr.contains("Fähigkeitsstärke +%d %%" % per), "Attribut: ein Intelligenz-Kauf zeigt die Zugewinne: %s" % attr)
 	t.check(hero.stats.max_mana() == mana_before and hero.stats.bought.int == 0, "Vorschau verändert die echten Werte nicht")
-	t.check(UiTheme.format_attribute_upgrade(hero, "str").contains("Leben +20"), "+1 Stärke: Leben +20")
+	t.check(UiTheme.format_attribute_upgrade(hero, "str").contains("Leben +%d" % (20 * per)), "Stärke-Kauf: Leben +20 je Punkt")
 	await _end(t, m)
 
 

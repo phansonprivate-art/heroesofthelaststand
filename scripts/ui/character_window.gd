@@ -110,9 +110,9 @@ func refresh() -> void:
 		var cost := s.upgrade_cost(a)
 		(_attr_effect[a] as Label).text = "%s\n%s" % [ATTR_EFFECTS[a], UiTheme.format_attribute_upgrade(hero, a)]
 		var button: Button = _attr_button[a]
-		button.text = "+1   ·   %s Gold" % UiTheme.format_int(cost)
+		button.text = "+%d   ·   %s Gold" % [s.points_per_buy(), UiTheme.format_int(cost)]
 		button.disabled = balance < cost
-		var cap_note := "\nÜber dem Soft Cap von %d Punkten wirkt jeder weitere Punkt nur halb." % int(s.rules.upgrade.soft_cap) if s.is_beyond_soft_cap(a) else ""
+		var cap_note := "\nÜber dem Soft Cap von %d Käufen wirkt jeder weitere Kauf nur halb." % int(s.rules.upgrade.soft_cap) if s.is_beyond_soft_cap(a) else ""
 		button.tooltip_text = ("Nicht genug Gold (%d fehlen)." % (cost - balance) if balance < cost else "Kaufen") + cap_note
 	var reduction := 1.0 - _match.combat.armor_constant / (_match.combat.armor_constant + s.armor())
 	var mr_reduction := 1.0 - _match.combat.armor_constant / (_match.combat.armor_constant + s.magic_resist())

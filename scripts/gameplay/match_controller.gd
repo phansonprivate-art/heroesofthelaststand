@@ -64,6 +64,7 @@ func _ready() -> void:
 	spawner.hp_growth_per_wave = float(GameData.setting("waves", "enemy_hp_growth_per_wave", 0.0))
 	spawner.damage_growth_per_wave = float(GameData.setting("waves", "enemy_damage_growth_per_wave", 0.0))
 
+	gold.unlimited = Session.test_mode and Session.test_unlimited_gold
 	upgrades.gold = gold
 	shop.gold = gold
 	shop.core = core
@@ -102,7 +103,7 @@ func _ready() -> void:
 		fountain_config.radius = map_def.fountain_radius
 	fountain.setup(fountain_config, heroes, vfx)
 	arena.bind_match(self)
-	wave_manager.start()
+	wave_manager.start(Session.test_wave - 1 if Session.test_mode else 0)   # Testmodus: gewählte Welle
 
 
 func _process(delta: float) -> void:
@@ -140,8 +141,22 @@ func _spawn_hero(hero_id: String, peer_id: int) -> Hero:
 		telemetry.track_hero(hero)
 		match_audio.track_hero(hero)
 		vfx.track_hero(hero)
-	gold.register_player(peer_id, int(GameData.setting("rewards", "start_gold", 500)))
+	var start_gold := int(GameData.setting("test_mode", "gold", 999999)) if Session.test_mode else int(GameData.setting("rewards", "start_gold", 500))
+	gold.register_player(peer_id, start_gold)
+	if Session.test_mode:
+		_apply_test_level(hero)
+		if gold.team_balance() < start_gold:   # auch Team-Verbesserungen (Kern) sollen kaufbar sein
+			gold.grant_team(start_gold - gold.team_balance(), "test_mode", "test_mode:team")
 	return hero
+
+
+## Testmodus: Held direkt auf die gewählte Stufe heben (über XP, damit Werte und Freischaltungen wie im Spiel folgen).
+func _apply_test_level(hero: Hero) -> void:
+	var target := clampi(Session.test_level, 1, hero.stats.max_level())
+	while hero.stats.level < target and hero.stats.xp_to_next() > 0:
+		hero.gain_xp(hero.stats.xp_to_next() - hero.stats.xp)
+	hero.health.heal(hero.health.max_hp)
+	hero.mana = hero.stats.max_mana()
 
 
 ## Kaufwunsch des lokalen Spielers (UI). In Phase 5 wird daraus ein RPC an den Host.

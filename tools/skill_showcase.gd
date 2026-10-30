@@ -10,9 +10,9 @@ extends Node
 
 const MATCH_SCENE := "res://scenes/main/match.tscn"
 const CUSTOM_MODELS := {
-	"guardian": "res://assets/models/heroes_custom/Guardian.glb",
-	"shadow": "res://assets/models/heroes_custom/Shadow.glb",
-	"arcanist": "res://assets/models/heroes_custom/Arcanist.glb",
+	"guardian": "res://assets/models/heroes_custom/GuardianTripo.glb",
+	"shadow": "res://assets/models/heroes_custom/ShadowTripo.glb",
+	"arcanist": "res://assets/models/heroes_custom/ArcanistTripo.glb",
 }
 const HERO_ORDER := ["guardian", "shadow", "arcanist"]
 const STAGE := Vector3(-2.0, 0.0, 13.0)   ## Platz des wirkenden Helden: freie Fläche südlich des Kerns

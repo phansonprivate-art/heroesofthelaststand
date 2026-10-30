@@ -21,6 +21,8 @@ Eine verfallene Festungshalle; untote Horden strömen durch drei Tore auf einen 
 | **Shadow** | Beweglichkeit | Schurke: höchster Einzelziel-Schaden, schnell, Krits (Start 14 %) | Doppeldolche, Nahkampf 1,9 m |
 | **Arcanist** | Intelligenz | Magier: Fernkampf, magischer Schaden, verlangsamt (20 %, 1 s) | Magisches Geschoss, 9 m |
 
+**Modelle (2026-10-30):** Alle drei Helden nutzen die Tripo-Figuren des Spielers, übertragen auf das KayKit-Skelett: Guardian = „Krieger“ (Plattenrüstung mit Fell, Schwert, Schild mit Baum-Wappen, `GuardianTripo.glb`), Shadow = „Assassine“ (Kapuze, zwei Sichelklingen, `ShadowTripo.glb`), Arcanist = „Zauberer“ (violette Robe, Kristallstab, `ArcanistTripo.glb`). Die alten Blender-Modelle liegen weiter in `heroes_custom/`.
+
 Gemeinsam für alle:
 - Automatischer Angriff auf Gegner in Reichweite, wenn der Held steht.
 - Bewegen bricht einen laufenden Schlag ab (bewusste Entscheidung zwischen Positionieren und Schaden).
@@ -53,7 +55,7 @@ Gemeinsam für alle:
 | Eisdrache | `ice_drake` | Mini-Boss mit Bossphasen (Welle 8) | Issue #9, siehe unten. Modell: Tripo-Drache auf dem Skelett des Glutdrachen (`FrostDrake.glb`) |
 | Feuerdrache | `fire_drake` | Mini-Boss mit Bossphasen (Welle 9) | Issue #8, siehe unten. Modell: Frostdrache umgefärbt (dunkelrot, glühende Zacken, pulsierendes Glühen, Glutfunken), eigene Animation Schwanzschlag |
 | Knochenkoloss | `colossus` | Mini-Boss (Welle 5) | sehr zäh, Kontrollresistenz 60 %, großer Bodenschlag |
-| Morvath, der Totenbeschwörer | `morvath` | Endboss (Welle 10) | drei Phasen, siehe unten |
+| Morvath, der Totenbeschwörer | `morvath` | Endboss (Welle 10) | drei Phasen, siehe unten. Modell seit 2026-10-30: der Abgrund-Hexer im Tripo-Stil, 1,45-fach (~3 m) und mit grünem statt violettem Leuchten (`MorvathHexer.glb`); Auftritt, Beschwörung und Phasenwechsel mit Stabstoß |
 
 Die vier neuen Figuren sind eigene Blender-Modelle (`tools/blender_build_enemies.py`) auf dem KayKit-Skelett.
 
@@ -162,6 +164,12 @@ Zweite Karte, im Hauptmenü wählbar (die Arena bleibt). **Nach dem Konzeptbild 
 - **Gefallene Bauwerke** bleiben für die Runde zerstört.
 - **Minimap** oben rechts (auch in der Arena) mit Spieluhr; ein Klick schwenkt die Kamera.
 - **Später (weitere Phasen):** neutrale Lager und Dschungelboss, Kasernen mit eigenen Dienern, Heldenleiste.
+
+## Testmodus (umgesetzt, Issue #11)
+Im Hauptmenü unter „Einzelspiel starten“: Stufe wählen (1 bis Höchststufe), **Startwelle** wählen (1–10, z. B. 8 = Eisdrache, 9 = Feuerdrache, 10 = Morvath), Häkchen „Gold unbegrenzt“, „Testmodus starten“. Es gelten der gewählte Held und die gewählte Karte.
+- Der Held startet auf der gewählten Stufe (über XP, also mit allen Werten und Freischaltungen wie im Spiel), mit vollem Leben und Mana.
+- Startgold 999.999 (`game.json` → `test_mode.gold`), ebenso Team-Gold für Kern-Verbesserungen; mit „Gold unbegrenzt“ ziehen Käufe nichts ab.
+- Keine Telemetrie; im HUD steht oben links „TESTMODUS“. Neustart behält den Testmodus, ein normales Einzelspiel schaltet ihn ab.
 
 ## Kern (umgesetzt)
 

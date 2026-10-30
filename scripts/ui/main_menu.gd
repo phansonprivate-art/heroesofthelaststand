@@ -88,6 +88,7 @@ func _ready() -> void:
 	start.add_theme_font_size_override("font_size", 24)
 	start.pressed.connect(func() -> void: Session.start_singleplayer(_selected_hero))
 	box.add_child(start)
+	box.add_child(_build_test_mode_row())
 	var quit := Button.new()
 	quit.text = "Beenden"
 	quit.pressed.connect(func() -> void: get_tree().quit())
@@ -109,6 +110,53 @@ func _ready() -> void:
 	var footer := UiTheme.label("Prototyp 0.3  ·  3D-Modelle: KayKit von Kay Lousberg (CC0)", 13, UiTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER)
 	UiTheme.place(footer, Control.PRESET_CENTER_BOTTOM, -300, -40, 300, -14)
 	add_child(footer)
+
+
+## Testmodus (Issue #11): Stufe und Startwelle wählen, Gold unbegrenzt an/aus, mit dem gewählten Helden und der Karte starten.
+func _build_test_mode_row() -> Control:
+	var panel := PanelContainer.new()
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	panel.add_child(row)
+	row.add_child(UiTheme.label("Testmodus", 16, UiTheme.ACCENT))
+	row.add_child(UiTheme.label("Stufe", 15, UiTheme.TEXT))
+	var level := SpinBox.new()
+	level.min_value = 1
+	level.max_value = int(GameData.attribute_rules.get("levels", {}).get("max_level", 20))
+	level.value = Session.test_level if Session.test_mode else level.max_value
+	level.rounded = true
+	level.custom_minimum_size = Vector2(90, 0)
+	level.tooltip_text = "Der Held startet direkt auf dieser Stufe (bis zur Höchststufe)."
+	row.add_child(level)
+	row.add_child(UiTheme.label("Welle", 15, UiTheme.TEXT))
+	var wave := SpinBox.new()
+	wave.min_value = 1
+	wave.max_value = maxi(1, GameData.waves.size())
+	wave.value = Session.test_wave if Session.test_mode else 1
+	wave.rounded = true
+	wave.custom_minimum_size = Vector2(90, 0)
+	wave.tooltip_text = "Die Runde beginnt direkt mit dieser Welle (z. B. 8 = Eisdrache, 9 = Feuerdrache, 10 = Morvath)."
+	row.add_child(wave)
+	var unlimited := CheckBox.new()
+	unlimited.text = "Gold unbegrenzt"
+	unlimited.button_pressed = Session.test_unlimited_gold
+	unlimited.tooltip_text = "Start mit maximalem Gold. Unbegrenzt: Kaufen zieht kein Gold ab."
+	row.add_child(unlimited)
+	var start := Button.new()
+	start.text = "Testmodus starten"
+	start.tooltip_text = "Eigene Testrunde: keine Telemetrie, der normale Spielstand bleibt unberührt."
+	start.pressed.connect(func() -> void:
+		Session.start_test(_selected_hero, _spin_value(level), unlimited.button_pressed, _spin_value(wave)))
+	row.add_child(start)
+	return panel
+
+
+## Wert einer SpinBox; eine eingetippte Zahl zählt auch ohne Enter (sonst wird sie erst beim Verlassen übernommen).
+func _spin_value(spin: SpinBox) -> int:
+	var typed := spin.get_line_edit().text.strip_edges()
+	var v := int(typed) if typed.is_valid_int() else int(spin.value)
+	return clampi(v, int(spin.min_value), int(spin.max_value))
 
 
 func select_hero(id: String) -> void:

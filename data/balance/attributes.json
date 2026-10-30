@@ -2,8 +2,9 @@
   "_comment": "Attribut-Skalierung, Obergrenzen, Upgrade-Kosten und Levelkurve. Siehe docs/BALANCING.md.",
   "upgrade": {
     "cost_base": 100,
-    "cost_growth": 1.16,
-    "soft_cap": 40,
+    "cost_growth": 1.08,
+    "points_per_buy": 2,
+    "soft_cap": 30,
     "soft_cap_efficiency": 0.5
   },
   "per_point": {
@@ -12,6 +13,7 @@
     "int": { "max_mana": 12, "mana_regen": 0.05, "ability_power": 0.01, "heal_power": 0.01, "magic_damage": 0.5, "magic_resist": 0.1 }
   },
   "main_attribute_damage": 0.8,
+  "main_attribute_ability_power": 0.01,
   "crit_multiplier": 1.75,
   "armor_constant": 50,
   "caps": {

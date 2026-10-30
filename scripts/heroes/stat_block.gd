@@ -31,29 +31,35 @@ func attribute(a: String) -> float:
 	return float(def.attributes[a]) + float(def.growth[a]) * (level - 1) + effective_bought(a) + _bonus(a)
 
 
-## Gekaufte Punkte mit Soft Cap: oberhalb der Grenze wirkt jeder Punkt nur noch anteilig.
+## Gekaufte Attributpunkte: jeder Kauf gibt points_per_buy Punkte; oberhalb des Soft Caps (Anzahl Käufe) wirkt
+## jeder Kauf nur noch anteilig.
 func effective_bought(a: String) -> float:
 	var n: int = bought[a]
-	var cap := int(_rule("upgrade", "soft_cap", 40))
+	var cap := int(_rule("upgrade", "soft_cap", 30))
 	var eff := float(_rule("upgrade", "soft_cap_efficiency", 0.5))
-	return mini(n, cap) + maxi(0, n - cap) * eff
+	return points_per_buy() * (mini(n, cap) + maxi(0, n - cap) * eff)
+
+
+## Attributpunkte je Kauf (Balancing: data/balance/attributes.json → upgrade.points_per_buy)
+func points_per_buy() -> int:
+	return int(_rule("upgrade", "points_per_buy", 1))
 
 
 func upgrade_cost(a: String) -> int:
 	return cost_for(bought[a], rules)
 
 
-## Kosten = round(cost_base · cost_growth^n), n = bereits gekaufte Punkte dieses Attributs.
+## Kosten = round(cost_base · cost_growth^n), n = bisherige Käufe dieses Attributs.
 static func cost_for(n: int, attribute_rules: Dictionary) -> int:
 	var up: Dictionary = attribute_rules.get("upgrade", {})
-	return roundi(float(up.get("cost_base", 100)) * pow(float(up.get("cost_growth", 1.16)), n))
+	return roundi(float(up.get("cost_base", 100)) * pow(float(up.get("cost_growth", 1.08)), n))
 
 
 func is_beyond_soft_cap(a: String) -> bool:
-	return bought[a] >= int(_rule("upgrade", "soft_cap", 40))
+	return bought[a] >= int(_rule("upgrade", "soft_cap", 30))
 
 
-## Kopie mit einem zusätzlich gekauften Punkt – nur für die Vorschau „was bringt +1?“ (kein Signal, keine Kosten).
+## Kopie mit einem zusätzlichen Kauf – nur für die Vorschau „was bringt der nächste Kauf?“ (kein Signal, keine Kosten).
 func preview_with_point(a: String) -> StatBlock:
 	var s := StatBlock.create(def, rules)
 	s.level = level
@@ -125,9 +131,14 @@ func move_speed() -> float:
 	return minf(def.base_move_speed + _from_attrs("move_speed") + _bonus("move_speed"), _cap("move_speed", 8.5))
 
 
-## Multiplikator für Fähigkeiten (Phase 3): 1.0 + Anteil aus Intelligenz
+## Multiplikator für Fähigkeiten: 1.0 + Anteil aus dem Hauptattribut (Arcanist: Intelligenz über per_point,
+## Guardian: Stärke, Shadow: Beweglichkeit über main_attribute_ability_power) + Gegenstände. So wachsen die Fähigkeiten
+## aller Helden gleich stark mit ihrem Attribut; Intelligenz stärkt bei Nicht-Magiern nur Mana und Heilung.
 func ability_power() -> float:
-	return 1.0 + _from_attrs("ability_power") + _bonus("ability_power")
+	var from_attrs := _from_attrs("ability_power")
+	if def.main_attribute != "int":
+		from_attrs = attribute(def.main_attribute) * float(rules.get("main_attribute_ability_power", 0.0))
+	return 1.0 + from_attrs + _bonus("ability_power")
 
 
 func heal_power() -> float:

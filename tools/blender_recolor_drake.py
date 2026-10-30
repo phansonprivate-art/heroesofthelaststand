@@ -1,4 +1,6 @@
 """Färbt einen fertigen Drachen (glTF mit einer Textur) um, z. B. den Frostdrachen zum Feuerdrachen.
+Mit --shift <von> <bis> <neu> wird nur ein Farbtonbereich gedreht (Morvath: Hexer mit grünem statt violettem Leuchten:
+  --src assets/models/enemies_custom/AbyssHexer.glb --out assets/models/enemies_custom/MorvathHexer.glb --shift 0.68 0.92 0.33).
 
 Ablauf: Modell mit Skelett und Animationen laden, die Textur Pixel für Pixel umfärben (dunkle Schuppen tiefrot,
 helle Kristalle orange-gold), aus den hellen Stellen eine Leuchttextur bauen, etwas metallischen Glanz setzen
@@ -23,11 +25,30 @@ ROUGHNESS = 0.3
 
 def args():
     a = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    opts = {"src": SRC_DEFAULT, "out": OUT_DEFAULT}
+    opts = {"src": SRC_DEFAULT, "out": OUT_DEFAULT, "shift": None}
     for i, k in enumerate(a):
         if k in ("--src", "--out") and i + 1 < len(a):
             opts[k[2:]] = a[i + 1]
+        elif k == "--shift" and i + 3 < len(a):   # --shift <von> <bis> <neu>: nur diesen Farbton-Bereich umfärben
+            opts["shift"] = (float(a[i + 1]), float(a[i + 2]), float(a[i + 3]))
     return opts
+
+
+def shift_hues(img, lo, hi, to):
+    """Nur gesättigte Pixel im Farbtonbereich lo..hi auf den Farbton `to` drehen (z. B. violettes Leuchten → grün);
+    Knochen, Metall und dunkle Teile bleiben, wie sie sind. Für Varianten von Figuren (Morvath aus dem Hexer)."""
+    w, h = img.size
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(h, w, 4)
+    hue, sat, val = rgb_to_hsv(px[..., :3])
+    sel = (hue >= lo) & (hue <= hi) & (sat > 0.2)
+    new_h = np.where(sel, to, hue)
+    rgb = hsv_to_rgb(new_h, sat, val)
+    out = bpy.data.images.new(img.name + "_shift", w, h, alpha=True)
+    out.pixels[:] = np.concatenate([rgb, px[..., 3:]], -1).ravel()
+    out.file_format = "PNG"
+    out.pack()
+    print("Farbton %.2f–%.2f → %.2f: %d Pixel" % (lo, hi, to, int(sel.sum())))
+    return out
 
 
 def rgb_to_hsv(rgb):
@@ -176,6 +197,9 @@ def main():
         if bsdf is None or tex is None or tex.image.name in done:
             continue
         done.add(tex.image.name)
+        if o["shift"] is not None:   # nur Farbton drehen, sonst nichts ändern
+            tex.image = shift_hues(tex.image, *o["shift"])
+            continue
         albedo, glow = recolor(tex.image)
         tex.image = albedo
         g = nt.nodes.new("ShaderNodeTexImage")
@@ -190,7 +214,7 @@ def main():
                 nt.links.remove(link)
         print("umgefärbt:", mat.name, tex.image.size[:])
     arm = next((ob for ob in bpy.data.objects if ob.type == "ARMATURE"), None)
-    if arm is not None:
+    if arm is not None and o["shift"] is None:   # Schwanzschlag nur für den Drachen
         add_tail_swipe(arm)
     bpy.ops.export_scene.gltf(filepath=o["out"], export_format="GLB", export_animations=True,
                               export_image_format="JPEG", export_yup=True)

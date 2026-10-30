@@ -65,7 +65,9 @@ func _physics_process(delta: float) -> void:
 		_erupt(_next)
 		_next += STEP
 	if _next > length:
-		queue_free()
+		# erst nach dem Hochschleudern der letzten Getroffenen entfernen (dessen Ende ruft noch _knock_up-Code auf)
+		set_physics_process(false)
+		get_tree().create_timer(lift + 0.3, false).timeout.connect(queue_free)
 
 
 func _erupt(d: float) -> void:

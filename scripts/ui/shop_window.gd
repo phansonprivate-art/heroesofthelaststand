@@ -161,7 +161,7 @@ func _fill_attributes(list: VBoxContainer, hero: Hero) -> void:
 		var reason := "" if _match.gold.can_afford(hero.peer_id, cost) else "Nicht genug Gold (%d fehlen)." % (cost - _match.gold.balance(hero.peer_id))
 		var note := "  ·  über dem Soft Cap: halbe Wirkung" if s.is_beyond_soft_cap(a) else ""
 		_row(list, "%s: %.0f  (+%d gekauft)" % [GameData.ATTRIBUTE_NAMES[a], s.attribute(a), s.bought[a]], UiTheme.format_attribute_upgrade(hero, a) + note,
-			UiTheme.TEXT, "+1 · %d" % cost, reason, func() -> void: show_result(_match.request_attribute_upgrade(a)))
+			UiTheme.TEXT, "+%d · %d" % [s.points_per_buy(), cost], reason, func() -> void: show_result(_match.request_attribute_upgrade(a)))
 
 
 func _fill_items(list: VBoxContainer, hero: Hero, consumables: bool) -> void:

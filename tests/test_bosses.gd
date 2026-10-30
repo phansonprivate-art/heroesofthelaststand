@@ -55,7 +55,12 @@ func test_phase4_data(t) -> void:
 		return wave.groups.any(func(g: Dictionary) -> bool: return g.enemy == id)
 	t.check(has.call(GameData.waves[4], "colossus"), "Welle 5 bringt den Mini-Boss")
 	t.check(has.call(GameData.waves[9], "morvath"), "Welle 10 bringt den Endboss")
-	for anim in ["Spellcast_Summon", "Spellcast_Long", "Taunt", "2H_Melee_Attack_Chop", "Spellcast_Shoot"]:
+	var boss_def := GameData.enemy("morvath")
+	var used := [String(boss_def.boss.get("phase_anim", "Taunt")), String(boss_def.boss.summon.get("anim", "Spellcast_Summon")), "Spellcast_Long"]
+	for key in boss_def.anims:   # alle Animationen, die die Daten nennen
+		var entry: Variant = boss_def.anims[key]
+		used.append_array(entry if entry is Array else [entry])
+	for anim in used:
 		var e_visual := CharacterVisual.new()
 		e_visual.setup(GameData.enemy("morvath").model, [], 1.0, {}, Color.WHITE)
 		t.check(e_visual.anim_player != null and e_visual.anim_player.has_animation(anim), "Boss-Modell hat Animation %s" % anim)

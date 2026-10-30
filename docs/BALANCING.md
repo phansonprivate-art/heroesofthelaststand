@@ -40,7 +40,17 @@ Alle Werte stehen in `data/` und sind ohne Codeänderung anpassbar. Die Zahlen h
 
 **Rüstung/Magieresistenz:** Schaden × 50 / (50 + Wert). 50 Rüstung halbieren physischen Schaden, 150 lassen 25 % übrig. Rüstung wirkt nicht gegen Magie und umgekehrt.
 
-**Attribut-Käufe:** Kosten = `round(100 · 1.16^n)` mit n = bereits gekaufte Punkte *dieses* Attributs, also 100, 116, 135, 156, 181 … Punkt 10 kostet 380, Punkt 20 kostet 1.678. **Soft Cap:** Ab 40 gekauften Punkten wirkt jeder weitere nur halb. Kauf und Wirkung bleiben möglich, aber ein einzelnes Attribut dominiert nicht.
+**Attribut-Käufe (geändert 2026-10-30, Spieler: „Das Scaling der Skills ist miserabel mit den Attributen“):** Jeder Kauf gibt **+2 Punkte**. Kosten = `round(100 · 1.08^n)` mit n = bisherige Käufe *dieses* Attributs, also 100, 108, 117, 126 …; 20 Käufe kosten zusammen 4.578 Gold (vorher 11.541 Gold für +20 Punkte). **Soft Cap:** Ab 30 Käufen wirkt jeder weitere nur halb.
+
+**Fähigkeitsstärke:** 1 % je Punkt des **Hauptattributs** (Arcanist Intelligenz, Guardian Stärke, Shadow Beweglichkeit), dazu Gegenstände. Vorher kam sie bei allen Helden nur aus Intelligenz, Fähigkeiten von Guardian und Shadow wuchsen kaum mit ihrem Attribut.
+
+| Stufe 20, Fähigkeit auf Stufe 3 | vorher | vorher +20 Käufe | jetzt | jetzt +20 Käufe |
+|---|---|---|---|---|
+| Guardian Shield Bash | 222 | 252 (+14 %) | 262 | 354 (+35 %) |
+| Shadow Shadow Strike | 259 | 299 (+15 %) | 298 | 408 (+37 %) |
+| Arcanist Fireball | 314 | 365 (+16 %) | 314 | 416 (+33 %) |
+
+Schätzwerte, nicht gegengespielt. Guardian und Shadow sind auch ohne Käufe etwa 15–18 % stärker als vorher.
 
 ## Helden (`data/heroes/heroes.json`)
 

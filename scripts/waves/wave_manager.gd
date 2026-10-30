@@ -25,12 +25,13 @@ var _elapsed := 0.0
 var _completed: Dictionary = {}      ## wave_number -> true
 
 
-func start() -> void:
+## first_index: mit dieser Welle beginnen (Testmodus); die früheren gelten als nicht gespielt.
+func start(first_index := 0) -> void:
 	if waves.is_empty():
 		push_error("WaveManager: keine Wellen definiert")
 		return
 	_completed.clear()
-	_begin_preparation(0)
+	_begin_preparation(clampi(first_index, 0, waves.size() - 1))
 
 
 func stop() -> void:

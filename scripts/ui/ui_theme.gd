@@ -170,7 +170,7 @@ static func _skill_value_text(id: String, level: int, key: String, hero: Hero) -
 		_: return "%s %s" % [_trim_number(snappedf(v, 0.1)), SKILL_VALUE_NAMES[key][1]]
 
 
-## Was +1 gekaufter Attributpunkt konkret bringt (abgeleitete Werte und gelernte Fähigkeiten).
+## Was der nächste Attributkauf konkret bringt (abgeleitete Werte und gelernte Fähigkeiten).
 static func format_attribute_upgrade(hero: Hero, a: String) -> String:
 	var s := hero.stats
 	var p := s.preview_with_point(a)
@@ -204,7 +204,7 @@ static func format_attribute_upgrade(hero: Hero, a: String) -> String:
 			if delta >= 0.05:
 				skills.append("%s +%s %s" % [GameData.skill(id).name, _trim_number(delta), SKILL_VALUE_NAMES.get(key, [key])[0]])
 				break
-	var text := "+1 bringt: " + "  ·  ".join(parts)
+	var text := "+%d bringt: " % s.points_per_buy() + "  ·  ".join(parts)
 	return text + ("\nFähigkeiten: " + "  ·  ".join(skills) if not skills.is_empty() else "")
 
 

@@ -69,6 +69,10 @@
     { "id": "core_regen", "name": "Kernregeneration", "description": "Der Kern regeneriert Leben pro Sekunde.", "costs": [300, 500, 800], "value_per_level": 4 },
     { "id": "core_barrier", "name": "Schutzbarriere", "description": "Zu Beginn jeder Welle ein Schild auf dem Kern.", "costs": [350, 600, 900], "value_per_level": 500 }
   ],
+  "test_mode": {
+    "_comment": "Testmodus (Issue #11): Startgold; Stufe und unbegrenztes Gold wählt der Spieler im Menü. Keine Telemetrie.",
+    "gold": 999999
+  },
   "telemetry": {
     "enabled": true,
     "directory": "user://telemetry"

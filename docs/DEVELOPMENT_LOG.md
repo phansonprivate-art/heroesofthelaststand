@@ -826,3 +826,47 @@ Wünsche des Spielers: Feuerdrache aus Issue #8; Design „in ein schimmerndes R
   - das Pulsieren und die Glutfunken nur auf Standbildern;
   - beim Meteorschauer hebt der Drache mit der Flug-Animation ab und landet abrupt – wirkt auf einem Bild unruhig;
   - Zitadellenkarte und Mehrspieler nicht geprüft.
+
+## 2026-10-30 – Testmodus (Issue #11)
+
+Vorgabe: Issue #11 (Testmodus mit frei wählbarem Level und maximalem Gold, optional unbegrenzt, unabhängig vom normalen Spiel).
+- **Menü:** neue Zeile unter „Einzelspiel starten“: Stufe (SpinBox bis Höchststufe 20), „Gold unbegrenzt“, „Testmodus starten“.
+- **Session:** `test_mode`, `test_level`, `test_unlimited_gold`, `start_test()`; `start_singleplayer()` schaltet den Testmodus ab. Im Testmodus ist die Telemetrie aus (es gibt keinen anderen gespeicherten Spielstand).
+- **Runde:** Startgold aus `game.json` → `test_mode.gold` (999.999); `_apply_test_level` hebt den Helden über XP auf die Stufe, füllt Leben und Mana; `GoldService.unlimited` bucht Käufe, ohne abzuziehen. HUD-Hinweis „TESTMODUS“ oben links.
+- **Behoben:** Glacial Rift löschte sich, bevor das Hochschleudern der Getroffenen endete (seit dem Aufladen sichtbar als Tween-Fehler im Test). Jetzt wird es erst danach entfernt.
+- **Werkzeug:** `tools/ui_shot.gd` macht Bilder beliebiger Szenen (Menü, HUD), auch im Testmodus.
+- **Geprüft:** 131 Tests bestanden, davon 4 neue in `tests/test_test_mode.gd` (Stufe und Gold, Höchststufe mit unbegrenztem Gold, begrenztes Gold, normales Spiel unverändert); Bilder von Menü und HUD im Testmodus.
+- **Nachbesserung nach Rückmeldung des Spielers** („der Testmodus scheint nicht richtig zu funktionieren“):
+  - Team-Verbesserungen (Kern) waren nicht kaufbar, weil das Team-Gold bei 0 lag. Jetzt bekommt auch das Team 999.999 Gold.
+  - Eine eingetippte Stufe zählt jetzt auch ohne Enter.
+  - Neuer Test `test_everything_buyable` (Fähigkeit bis Stufe 3, Ultimate, Attribut, Gegenstand, Team-Verbesserung); `tools/ui_shot.gd` kann im Menü tippen und Knöpfe drücken (`--type`, `--press`). Über den echten Menüknopf geprüft: Stufe 10 eingetippt, Runde startet auf Stufe 10 mit 999.999 Gold und 999.999 Team-Gold.
+- **Startwelle** (Klarstellung des Spieler: „ich komme nicht in den Level, was ich auswähle, also Welle“): zweites Zahlenfeld „Welle“ im Menü; `WaveManager.start(first_index)`, `Session.test_wave`; HUD zeigt „ab Welle X“. Test `test_start_wave`; über den echten Menüknopf geprüft: Stufe 15, Welle 8 → Runde beginnt mit „Welle 8/10 · Der Eisdrache“. 133 Tests bestanden.
+- **Nicht geprüft:** Fähigkeiten im Testmodus von Hand im Shop-Fenster gekauft und gewirkt; Testmodus auf der Zitadelle; Belohnungen für übersprungene Wellen gibt es keine (Absicht, nicht gegengespielt).
+
+## 2026-10-30 – Attribut-Skalierung der Fähigkeiten verbessert
+
+Rückmeldung des Spielers: „Das Scaling der Skills ist miserabel mit den Attributen.“ Nachgerechnet: 20 gekaufte Punkte kosteten 11.541 Gold und brachten nur +14–16 % Fähigkeitsschaden; bei Guardian und Shadow kam die Fähigkeitsstärke nur aus Intelligenz.
+- **Neu:** jeder Kauf +2 Punkte, Kosten `100 · 1.08^n` (20 Käufe 4.578 Gold), Soft Cap ab 30 Käufen; Fähigkeitsstärke aus dem Hauptattribut (1 % je Punkt) für alle Helden. Ergebnis Stufe 20 mit 20 Käufen: +33–37 % (Tabelle in BALANCING.md).
+- **Erst verworfen:** Hauptattribut *zusätzlich* zu Intelligenz – dann hätte der Guardian 208 % Fähigkeitsstärke gehabt, mehr als der Arcanist (186 %).
+- Anzeige: „+2 · Preis“ im Charakterfenster und Shop, Vorschau „+2 bringt …“, Meldung „Stärke +2 für … Gold“.
+- **Geprüft:** 134 Tests bestanden; neue Prüfung `test_skills_scale_with_bought_main_attribute` (alle drei Helden ≥ +25 % bei 20 Käufen); Tests mit festen alten Preisen lesen jetzt die Regeln. Bild des Charakterfensters im Testmodus.
+- **Nicht geprüft:** nicht gegengespielt; Guardian und Shadow sind auch ohne Käufe stärker (+15–18 % Fähigkeitsschaden auf Stufe 20); Belohnungs-Kalibrierung (Rollen-Gold) lief grün, aber nur in der Simulation.
+
+## 2026-10-30 – Tripo-Figuren als Helden-Modelle (Zauberer, Assassine)
+
+Wunsch des Spielers: „übernimm die restlichen Charakter-Modelle ins Spiel“ (Ordner `Downloads/character`).
+- **Geprüft vor der Übernahme:** Vorlagen Zauberer, Assassine, Krieger sind eigene Entwürfe (Stil wie bekannte Spiele, keine fremden Figuren oder Namen). Mit Modell: nur `Zauberer.glb` und `assassin character 3d model.glb`. Krieger und dreiköpfiger Höllenhund sind nur Bilder. `demon_schamane.glb` bleibt draußen (Warcraft-Vorlage), `daemon_hexer.glb` ist schon der Abgrund-Hexer, `Dragon.glb` war der erste Drachenversuch (durch den Frostdrachen ersetzt).
+- **Skript** `tools/blender_build_tripo_hero.py`: allgemeine Fassung des Hexer-Ablaufs mit Konfiguration je Figur. Zauberer: Stab über seine Achse erkannt (die umgreifende Hand bleibt am Körper), Rumpf um 21 cm zur Mitte gerückt (der weite Umhang verschob die Mitte). Assassine: Klingen (448 Punkte) ganz an die Hände gehängt, sonst ziehen die Oberschenkel sie mit.
+- **Ergebnis:** `ArcanistTripo.glb` (4,8 MB) und `ShadowTripo.glb` (4,7 MB) mit allen 76 KayKit-Animationen; `heroes.json`, Modell-Viewer und Fähigkeiten-Showcase zeigen sie. Die alten Blender-Modelle bleiben als Dateien liegen; der Guardian bleibt, bis es ein Krieger-Modell gibt.
+- **Geprüft:** 134 Tests bestanden; Skelett- und Posenbilder (Stehen, Laufen, Zaubern, Doppelklingen-Hieb, Tod) in Blender; im Spiel Fireball und Fan of Knives mit Guardian zum Größenvergleich.
+- **Nicht geprüft:** alle übrigen Fähigkeiten und Animationen; der lange Stab liegt im Stehen und Zaubern waagerecht (wie beim KayKit-Original mit kurzem Stab, wirkt aber ungewohnt); der Umhang des Zauberers beim Laufen nur auf einem Standbild; Bildrate.
+- **Nachtrag Krieger** (Spieler: „hier ist der Krieger jetzt drinnen“, `fantasy knight 3d model.glb`): Eintrag `krieger` mit Waffe `held` – Schwert und Schild über Bereiche ganz an die jeweilige Hand (Schild-Bereich zuerst zu groß: er erfasste Kniepanzer, die als Splitter mitflogen; enger gefasst 188 → 90 Punkte). `GuardianTripo.glb` (4,8 MB) ist jetzt das Modell des Guardian. Geprüft: Posenbilder und im Spiel Shield Bash und Iron Maelstrom; 134 Tests bestanden. **Grenze des Modells:** Unter dem Wappenrock fehlt ein vollständiger Oberschenkel; hebt der Krieger beim Laufen das Knie, sieht man kurz in die offene Beinschiene.
+
+## 2026-10-30 – Endboss Morvath im neuen Stil
+
+Wunsch des Spielers: „tausche den Level-10-Hexer-Boss mit dem neuen Stil aus“.
+- **Modell:** `MorvathHexer.glb` = Abgrund-Hexer (Tripo) mit grünem statt violettem Leuchten (`tools/blender_recolor_drake.py --shift 0.68 0.92 0.33`: nur gesättigte Violett-Töne gedreht, Knochen und Rüstung unverändert). `model_scale` 1,45 (~3 m), damit er sich vom Hexer-Elite in Welle 7 abhebt. Grün passt zu Seelenfeuer und Beschwörungskreisen.
+- **Animationen:** Dem Hexer fehlen Taunt, Spellcast_Summon und die Skelett-Varianten. Beschwörung, Phasenwechsel und Auftritt jetzt mit `Staff_Slam` (neu: `boss.summon.anim`, `boss.phase_anim`), Stehen `Hexer_Idle`, Laufen `Walking_A`, Tod `Death_A`, Jubel `Spellcast_Long`. Der Boss-Test prüft jetzt alle Animationen, die die Daten nennen.
+- **Showcase:** `--enemy=morvath` mit eigenen Bildzeiten; Phase 2 wird für das Seelenfeuer erzwungen.
+- **Geprüft:** 134 Tests bestanden; Bildfolge aus einer echten Runde (Auftritt mit Stabstoß, Beschwörungskreise, Skelette, Seelenfeuer).
+- **Nicht geprüft:** Phase 3 (Todeswelle, Raserei) und der Tod im Spiel nicht angesehen; das alte Modell `Morvath.glb` bleibt als Datei liegen.

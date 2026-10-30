@@ -159,7 +159,7 @@ func _start_summon() -> void:
 	var warn := float(cfg.get("summon", {}).get("warning", 1.2))
 	_summon_left = float(_phase_value("summon", "cooldown", 12.0))
 	_cast_left = warn
-	boss.visual.play_action("Spellcast_Summon", 1.0)
+	boss.visual.play_action(String(cfg.get("summon", {}).get("anim", "Spellcast_Summon")), 1.0)
 	var base := randf() * TAU
 	for i in list.size():
 		var a := base + TAU * i / list.size()

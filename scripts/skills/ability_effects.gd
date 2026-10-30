@@ -61,7 +61,7 @@ static func power(id: String, level: int, key: String, hero: Hero, multiplier :=
 	return power_for_stats(id, level, key, hero.stats, multiplier)
 
 
-## Wie power(), aber für beliebige Werte (z. B. die Vorschau „+1 Attributpunkt“).
+## Wie power(), aber für beliebige Werte (z. B. die Vorschau des nächsten Attributkaufs).
 static func power_for_stats(id: String, level: int, key: String, stats: StatBlock, multiplier := 1.0) -> float:
 	var base := float(GameData.skill_value(id, level, key, 0.0))
 	var total := base * stats.ability_power() * multiplier

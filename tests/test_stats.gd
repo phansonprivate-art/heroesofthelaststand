@@ -8,10 +8,14 @@ func _stats(id: String) -> StatBlock:
 
 func test_upgrade_cost_formula(t) -> void:
 	var rules := GameData.attribute_rules
-	t.eq(StatBlock.cost_for(0, rules), 100, "erster Punkt 100 Gold")
-	t.eq(StatBlock.cost_for(1, rules), 116, "zweiter Punkt 116 Gold")
-	t.eq(StatBlock.cost_for(2, rules), 135, "dritter Punkt 135 Gold")
-	t.eq(StatBlock.cost_for(10, rules), roundi(100 * pow(1.16, 10)), "allgemeine Formel round(100 · 1.16^n)")
+	var growth := float(rules.upgrade.cost_growth)
+	t.eq(StatBlock.cost_for(0, rules), 100, "erster Kauf 100 Gold")
+	t.eq(StatBlock.cost_for(1, rules), roundi(100 * growth), "zweiter Kauf 100 · Wachstum")
+	t.eq(StatBlock.cost_for(10, rules), roundi(100 * pow(growth, 10)), "allgemeine Formel round(100 · %s^n)" % growth)
+	var twenty := 0
+	for n in 20:
+		twenty += StatBlock.cost_for(n, rules)
+	t.check(twenty <= 5000, "20 Käufe bleiben bezahlbar (%d Gold)" % twenty)
 	for n in 60:
 		t.check(StatBlock.cost_for(n + 1, rules) > StatBlock.cost_for(n, rules), "Kosten steigen streng (n=%d)" % n)
 		if StatBlock.cost_for(n + 1, rules) <= StatBlock.cost_for(n, rules):
@@ -20,10 +24,12 @@ func test_upgrade_cost_formula(t) -> void:
 
 func test_soft_cap_halves_effect(t) -> void:
 	var s := _stats("guardian")
-	s.bought["str"] = 40
-	t.eq(s.effective_bought("str"), 40.0, "bis zum Soft Cap volle Wirkung")
-	s.bought["str"] = 44
-	t.eq(s.effective_bought("str"), 42.0, "darüber halbe Wirkung")
+	var cap := int(s.rules.upgrade.soft_cap)
+	var per := s.points_per_buy()
+	s.bought["str"] = cap
+	t.eq(s.effective_bought("str"), float(cap * per), "bis zum Soft Cap volle Wirkung (%d Punkte je Kauf)" % per)
+	s.bought["str"] = cap + 4
+	t.eq(s.effective_bought("str"), float(cap * per + 2 * per), "darüber halbe Wirkung")
 	t.check(s.is_beyond_soft_cap("str"), "Soft Cap erkannt")
 
 
@@ -32,7 +38,7 @@ func test_attributes_drive_derived_stats(t) -> void:
 	var hp0 := s.max_hp()
 	var dmg0 := s.attack_damage()
 	s.add_bought_point("str")
-	t.eq(snappedf(s.max_hp() - hp0, 0.01), 20.0, "+1 Stärke = +20 Leben")
+	t.eq(snappedf(s.max_hp() - hp0, 0.01), 20.0 * s.points_per_buy(), "ein Stärke-Kauf = +20 Leben je Punkt")
 	t.check(s.attack_damage() > dmg0, "Stärke (Hauptattribut) erhöht den Schaden")
 	var a := _stats("shadow")
 	var interval0 := a.attack_interval()
@@ -44,7 +50,7 @@ func test_attributes_drive_derived_stats(t) -> void:
 	var mana0 := m.max_mana()
 	var ap0 := m.ability_power()
 	m.add_bought_point("int")
-	t.eq(snappedf(m.max_mana() - mana0, 0.01), 12.0, "+1 Intelligenz = +12 Mana")
+	t.eq(snappedf(m.max_mana() - mana0, 0.01), 12.0 * m.points_per_buy(), "ein Intelligenz-Kauf = +12 Mana je Punkt")
 	t.check(m.ability_power() > ap0, "Intelligenz erhöht die Fähigkeitsstärke")
 
 
@@ -110,3 +116,14 @@ func test_crit_roll(t) -> void:
 			if not is_equal_approx(r.amount, s.attack_damage() * s.crit_multiplier()):
 				break
 	t.check(crits > 900 and crits < 1100, "Krit-Quote entspricht der gedeckelten Chance (%d / 2000)" % crits)
+
+
+## Fähigkeiten wachsen spürbar mit gekauften Hauptattribut-Punkten – bei allen drei Helden, auch Stärke und Beweglichkeit.
+func test_skills_scale_with_bought_main_attribute(t) -> void:
+	for pair in [["guardian", "shield_bash"], ["shadow", "shadow_strike"], ["arcanist", "fireball"]]:
+		var s := _stats(pair[0])
+		s.level = 20
+		var before := AbilityEffects.power_for_stats(pair[1], 3, "damage", s)
+		s.bought[s.def.main_attribute] = 20
+		var after := AbilityEffects.power_for_stats(pair[1], 3, "damage", s)
+		t.check(after >= before * 1.25, "%s: 20 Käufe Hauptattribut → %s %.0f → %.0f (+%.0f %%)" % [pair[0], pair[1], before, after, (after / before - 1.0) * 100.0])

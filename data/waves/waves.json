@@ -88,7 +88,7 @@
       "name": "Die letzte Flut",
       "prepare_seconds": 45,
       "groups": [
-        { "enemy": "colossus", "count": 1, "path": 1, "interval": 1.0, "delay": 0 },
+        { "enemy": "fire_drake", "count": 1, "path": 1, "interval": 1.0, "delay": 0 },
         { "enemy": "grunt", "count": 10, "path": 0, "interval": 0.8, "delay": 2 },
         { "enemy": "grave_knight", "count": 2, "path": 2, "interval": 5.0, "delay": 6 },
         { "enemy": "seer", "count": 6, "path": 1, "interval": 1.2, "delay": 8 },

@@ -74,6 +74,7 @@ Pro Stufe wachsen die Attribute laut `growth` des Helden; gewonnene Max-LP und M
 | Schattenhuscher | 70 | 5,6 | 8 | 30 | 1,0 s | 0 | 5 | 9 | 10 |
 | Grabkoloss | 480 | 2,3 | 32 | 90 | 2,0 s | 15 | 0 | 15 | 30 |
 | Abgrund-Hexer | 650 | 2,7 | 24 (magisch, 6 m) | 45 | 1,9 s | 12 | 25 | 45 | 75 |
+| Feuerdrache | 5600 | 2,1 | 50 (Feuer, 8 m, Fläche 2 m) / 80 (Nahkampf) | 240 | 1,9 s | 65 | 30 | 650 | 950 |
 | Eisdrache | 5200 | 2,1 | 45 (magisch, 8 m) / 75 (Nahkampf) | 220 | 1,9 s | 65 | 30 | 600 | 900 |
 
 | Aggro | Radius (greift Helden in der Nähe an) | Leash (gibt Verfolgung auf) |
@@ -117,6 +118,8 @@ Werte in `data/balance/game.json` (`rewards`, `contribution`).
 | AFK | kein Spielerbefehl seit 60 s → keine Wellen-, Support- und Rollenbelohnung |
 
 **Kalibrierung:** Der Test `test_rewards.gd::test_roles_earn_comparable_gold` simuliert eine 4-Spieler-Welle (24 Knochenläufer, 4 Grabkolosse) mit typischem Verhalten je Rolle. Ausgangswerte ergaben Tank 725 · Support 486 · Magier 540 · Schurke 435 Gold (67 % Abstand). Nach Anpassung der Gewichte und Aufnahme von Schaden in den Rollenbonus: **Tank 428 · Support 444 · Magier 436 · Schurke 398** – alle im Zielkorridor 300–450, Abstand 11,6 % (Vorgabe ≤ 15 %). Die Simulation beruht auf Annahmen über typisches Verhalten; echte Werte liefert die Telemetrie.
+
+**Feuerdrache** (`fire_drake`, Mini-Boss, Welle 9 Pfad 1 sofort; ersetzt dort den Knochenkoloss): Kontrollresistenz 60 %. Elemente Feuer ×0, Eis ×1,5, Gift ×1,5. Feuerpest 10 Schaden/s für 3 s. Schwerer Feuerball 110 Schaden, 2,6 m, Brand 18/s für 3 s, Abklingzeit 8/7/6 s, erster nach 4 s. Meteorschauer ab Phase 2: 6 Meteore à 70 Schaden (1,8 m), Brand 12/s, Abklingzeit 14/14/10 s. Drachengebrüll alle 18 s: −20 Rüstung/MR für Helden (5 s), +30 % Schaden für Gegner (6 s). Alle Werte Schätzwerte, nicht gegengespielt.
 
 **Eisdrache** (`ice_drake`, Mini-Boss, Welle 8 Pfad 2, 10 s nach Wellenstart; ersetzt dort einen Grabritter, Vorbereitung 45 s statt 40 s): Kontrollresistenz 60 %, Körperradius 1,5 m. Elemente Eis ×0, Feuer ×1,5, Gift ×1,5. Unterkühlung 20 %/20 % für 2 s. Odem 90 Schaden, Abklingzeit 9/8/6,5 s, erster nach 4 s. Schneesturm 14 Schaden je 0,5 s, Abklingzeit 12/12/9 s, Einfrieren bei 6 Stapeln für 1,5 s. Schrei alle 18 s, erster nach 8 s, +25 Rüstung/MR für Gegner. Phasen bei 60 % und 30 %. Alle Werte Schätzwerte, nicht gegengespielt.
 

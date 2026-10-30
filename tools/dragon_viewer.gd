@@ -7,15 +7,17 @@ extends Node3D
 const MODEL := "res://assets/models/enemies_custom/EmberDrake.glb"
 const FROST_MODEL := "res://assets/models/enemies_custom/FrostDrake.glb"   ## `-- --frost`: Frostdrache (Tripo-Modell, gleiches Skelett)
 ## Reihenfolge und deutsche Namen der Animationen
-const ANIMS := [
+const ALL_ANIMS := [
 	["Idle", "Stehen und Atmen"], ["Walk", "Laufen"], ["Attack_Bite", "Biss"], ["Attack_Claw", "Prankenhieb"],
 	["Fire_Breath", "Feuerodem"], ["Roar", "Brüllen"], ["Hit", "Treffer"], ["Death", "Tod"], ["Fly", "Fliegen"],
+	["Tail_Swipe", "Schwanzschlag"],
 ]
 const LOOPING := ["Idle", "Walk", "Fly"]
 const SPEEDS := [0.1, 0.25, 0.5, 1.0, 1.5, 2.0]
 const HELP := "← / →  Animation      Leertaste  Pause      + / −  Tempo      G  Größenvergleich mit dem Guardian\nMaus ziehen  drehen      Mausrad  Zoom      R  Kamera zurück      Esc  Beenden"
 
 var _player: AnimationPlayer
+var _anims: Array = []   ## nur die Animationen, die das Modell hat
 var _anim_index := 0
 var _speed_index := 3
 var _paused := false
@@ -37,6 +39,7 @@ func _ready() -> void:
 	add_child(dragon)
 	dragon.setup(_model_path(), [], 1.0, {"idle": "Idle", "run": "Walk"})
 	_player = dragon.anim_player
+	_anims = ALL_ANIMS.filter(func(e: Array) -> bool: return _player.has_animation(e[0]))
 	for a in LOOPING:
 		if _player.has_animation(a):
 			_player.get_animation(a).loop_mode = Animation.LOOP_LINEAR
@@ -126,7 +129,7 @@ func _reset_camera() -> void:
 
 
 func _play_current() -> void:
-	var anim: String = ANIMS[_anim_index][0]
+	var anim: String = _anims[_anim_index][0]
 	_player.speed_scale = SPEEDS[_speed_index]
 	_player.play(anim, 0.15)
 	if _paused:
@@ -136,11 +139,11 @@ func _play_current() -> void:
 
 ## Einmal-Animationen nach kurzer Pause wiederholen, damit man sie mehrfach sehen kann
 func _restart_later() -> void:
-	var anim: String = ANIMS[_anim_index][0]
+	var anim: String = _anims[_anim_index][0]
 	if anim in LOOPING:
 		return
 	await get_tree().create_timer(0.8).timeout
-	if ANIMS[_anim_index][0] == anim and not _paused:
+	if _anims[_anim_index][0] == anim and not _paused:
 		_player.play(anim, 0.0)
 		_player.seek(0.0, true)
 
@@ -150,17 +153,22 @@ func _frost() -> bool:
 
 
 func _model_path() -> String:
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--model="):
+			return arg.trim_prefix("--model=")
 	return FROST_MODEL if _frost() else MODEL
 
 
 func _title() -> String:
+	if _model_path().contains("FireDrake"):
+		return "Feuerdrache"
 	return "Frostdrache" if _frost() else "Glutdrache"
 
 
 func _update_info() -> void:
-	var anim: String = ANIMS[_anim_index][0]
+	var anim: String = _anims[_anim_index][0]
 	_info.text = "%s  –  %s  (%s)\nAnimation %d/%d   ·   %.2f s   ·   Tempo ×%s%s" % [
-		_title(), ANIMS[_anim_index][1], anim, _anim_index + 1, ANIMS.size(), _player.get_animation(anim).length,
+		_title(), _anims[_anim_index][1], anim, _anim_index + 1, _anims.size(), _player.get_animation(anim).length,
 		str(SPEEDS[_speed_index]), "   ·   PAUSE" if _paused else ""]
 
 
@@ -187,10 +195,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and not event.echo:
 		match (event as InputEventKey).keycode:
 			KEY_RIGHT:
-				_anim_index = (_anim_index + 1) % ANIMS.size()
+				_anim_index = (_anim_index + 1) % _anims.size()
 				_play_current()
 			KEY_LEFT:
-				_anim_index = (_anim_index - 1 + ANIMS.size()) % ANIMS.size()
+				_anim_index = (_anim_index - 1 + _anims.size()) % _anims.size()
 				_play_current()
 			KEY_SPACE:
 				_paused = not _paused
@@ -233,15 +241,21 @@ func _toggle_hero() -> void:
 func _run_shots(dir: String) -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	get_tree().create_timer(120.0).timeout.connect(func() -> void: get_tree().quit(1))
-	# [Animation, Anteil der Länge, Kamerawinkel, Dateiname]
+	# [Animation, Anteil der Länge, Kamerawinkel, Dateiname, optional Kameraneigung]
 	var shots := [["Idle", 0.0, PI - 0.6, "00_stehen"], ["Idle", 0.0, PI * 0.5, "01_seite"], ["Walk", 0.3, PI - 0.6, "02_laufen"],
 		["Attack_Bite", 0.47, PI - 0.9, "03_biss"], ["Fire_Breath", 0.5, PI - 0.6, "04_feuer"], ["Roar", 0.5, PI - 0.6, "05_bruellen"],
-		["Fly", 0.25, PI - 0.6, "06_fliegen"], ["Death", 1.0, PI - 0.6, "07_tod"]]
+		["Fly", 0.25, PI - 0.6, "06_fliegen"], ["Death", 1.0, PI - 0.6, "07_tod"],
+		["Tail_Swipe", 0.25, PI - 0.6, "08_schwanz_ausholen", 1.15], ["Tail_Swipe", 0.5, PI - 0.6, "09_schwanz_schlag", 1.15],
+		["Tail_Swipe", 0.62, PI - 0.6, "10_schwanz_nachschwung", 1.15]]
 	_toggle_hero()
 	for s in shots:
+		if not _player.has_animation(s[0]):
+			continue
 		_reset_camera()
 		_yaw = s[2]
-		_anim_index = ANIMS.map(func(e: Array) -> String: return e[0]).find(s[0])
+		if s.size() > 4:
+			_pitch = s[4]
+		_anim_index = _anims.map(func(e: Array) -> String: return e[0]).find(s[0])
 		_update_info()
 		_player.play(s[0], 0.0)
 		_player.seek(s[1] * _player.get_animation(s[0]).length, true)

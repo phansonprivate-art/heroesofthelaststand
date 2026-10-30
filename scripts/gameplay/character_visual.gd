@@ -56,6 +56,24 @@ func setup(model_path: String, hidden_parts: Array, scale_factor: float, anims: 
 	_flash_material.albedo_color = Color(1, 1, 1, 0.55)
 
 
+## Schimmern: Das Eigenleuchten des Modells (Leuchttextur, z. B. Glutzacken des Feuerdrachen) pulsiert zwischen
+## `low` und `high` mit der Periode `period`. Die Materialien werden je Figur kopiert, damit nur sie pulsiert.
+func pulse_glow(low: float, high: float, period: float) -> void:
+	for m in _meshes:
+		if m.mesh == null:
+			continue
+		for i in m.mesh.get_surface_count():
+			var mat := m.get_active_material(i) as StandardMaterial3D
+			if mat == null or not mat.emission_enabled:
+				continue
+			mat = mat.duplicate() as StandardMaterial3D
+			m.set_surface_override_material(i, mat)
+			mat.emission_energy_multiplier = low
+			var t := m.create_tween().set_loops()
+			t.tween_property(mat, "emission_energy_multiplier", high, period * 0.5).set_trans(Tween.TRANS_SINE)
+			t.tween_property(mat, "emission_energy_multiplier", low, period * 0.5).set_trans(Tween.TRANS_SINE)
+
+
 ## Zusätzliche Animationen aus KayKit-Animationsbibliotheken (Rig_Medium) laden, z. B. Sprung-Hieb oder
 ## Beschwörung. Die Bibliotheken haben dasselbe Skelett wie die Figuren; nur der Knotenpfad zum Skelett
 ## unterscheidet sich und wird umgeschrieben. Erreichbar als "kk/<Name>". Je Skelettpfad nur einmal umgerechnet.

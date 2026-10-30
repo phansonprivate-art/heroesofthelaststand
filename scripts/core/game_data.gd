@@ -362,6 +362,8 @@ func _normalize_enemy(src: Dictionary) -> Dictionary:
 		"elements": src.get("elements", {}),       ## Schadensfaktor je Element, z. B. {ice: 0, fire: 1.5}; fehlt = 1
 		"body_radius": float(src.get("body_radius", 0.0)),   ## 0 = aus model_scale; große Körper (Drache) größer
 		"bar_height": float(src.get("bar_height", 0.0)),     ## Höhe der Lebensleiste; 0 = aus model_scale
+		"glow_pulse": src.get("glow_pulse", []),   ## [niedrig, hoch, Periode] – Eigenleuchten pulsiert
+		"aura_fx": String(src.get("aura_fx", "")), ## dauerhafter Effekt am Körper, z. B. "embers"
 	}
 
 

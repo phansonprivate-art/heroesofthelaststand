@@ -10,6 +10,10 @@ extends Node
 ##   frost_breath: Eisfeuer-Odem – Kegel vor dem Drachen (Vorwarnung am Boden), Frostschaden, starke Verlangsamung
 ##   blizzard:     Schneesturm an einem Helden – Schaden im Takt, Erfrierung stapelt, bei voller Zahl eingefroren
 ##   frost_roar:   Arktischer Schrei – Helden im großen Umkreis langsamer (Laufen und Angriff), Gegner gepanzert
+## Feuerdrache (Issue #8):
+##   fireball:      Glut im Maul, Warnkreis am Ziel, schwerer Feuerball mit Explosion und Verbrennung
+##   meteor_shower: Meteore nacheinander um einen Helden, jeder mit eigenem Warnkreis
+##   fire_roar:     Drachengebrüll – Rüstung und Magieresistenz der Helden sinken, Gegner verursachen mehr Schaden
 
 signal phase_changed(phase: int, title: String, subtitle: String)
 signal defeated
@@ -27,6 +31,8 @@ var _wave_left := 0.0
 var _breath_left := 0.0
 var _blizzard_left := 0.0
 var _roar_left := 0.0
+var _fireball_left := 0.0
+var _meteor_left := 0.0
 var _cast_left := 0.0            ## > 0: Boss steht und wirkt (Beschwörung, Todeswelle, Odem, Schrei)
 var _pending: Array[Dictionary] = []   ## {time, kind, pos}
 var _storms: Array[Dictionary] = []    ## laufende Schneestürme {pos, left, tick}
@@ -40,7 +46,9 @@ func setup(p_boss: Enemy) -> void:
 	_wave_left = float(cfg.get("deathwave", {}).get("first_delay", 3.0))
 	_breath_left = float(cfg.get("frost_breath", {}).get("first_delay", 4.0))
 	_blizzard_left = float(cfg.get("blizzard", {}).get("first_delay", 2.0))
-	_roar_left = float(cfg.get("frost_roar", {}).get("first_delay", 8.0))
+	_roar_left = float(cfg.get(_roar_key(), {}).get("first_delay", 8.0))
+	_fireball_left = float(cfg.get("fireball", {}).get("first_delay", 4.0))
+	_meteor_left = float(cfg.get("meteor_shower", {}).get("first_delay", 2.0))
 	boss.health.changed.connect(_on_health_changed)
 	boss.died.connect(func(_e: Enemy, _i: DamageInfo) -> void: _on_boss_died())
 
@@ -81,10 +89,18 @@ func _physics_process(delta: float) -> void:
 		_blizzard_left -= delta
 		if _blizzard_left <= 0.0:
 			_start_blizzard()
-	if _active("frost_roar", 1):
+	if _active(_roar_key(), 1):
 		_roar_left -= delta
 		if _roar_left <= 0.0 and _cast_left <= 0.0:
 			_start_roar()
+	if _active("fireball", 1):
+		_fireball_left -= delta
+		if _fireball_left <= 0.0 and _cast_left <= 0.0:
+			_start_fireball()
+	if _active("meteor_shower", 2):
+		_meteor_left -= delta
+		if _meteor_left <= 0.0 and _cast_left <= 0.0:
+			_start_meteors()
 
 
 ## Fähigkeit vorhanden und ab dieser Phase freigeschaltet (from_phase in den Daten, sonst `default_phase`)?
@@ -240,6 +256,12 @@ func _process_pending(delta: float) -> void:
 			"breath_hit": _breath_hit(p.hero)
 			"blizzard": _begin_storm(p.pos)
 			"roar": _release_roar(p.pos)
+			"fireball_launch": _launch_fireball(p.pos, p.dir)
+			"fireball_hit": _fireball_hit(p.pos)
+			"meteor_fall":
+				if boss.world != null:
+					boss.world.vfx.meteor(p.pos, Color(1.0, 0.5, 0.15), 0.6)
+			"meteor_hit": _meteor_hit(p.pos)
 
 
 func _hit_heroes(pos: Vector3, radius: float, damage: float, element := "") -> Array[Hero]:
@@ -312,7 +334,7 @@ func _start_breath() -> void:
 	_pending.append({"time": warn, "kind": "breath", "pos": boss.global_position, "dir": dir, "target_dist": target_dist})
 	if boss.world != null:
 		boss.world.vfx.cone_indicator(boss.global_position, dir, reach, float(fb.get("angle", 70.0)), Color(0.55, 0.85, 1.0, 0.9), warn)
-		boss.world.vfx.ice_charge(_mouth(boss.global_position, dir), warn, 1.2)   # 1. Magie sammelt sich im Maul
+		boss.world.vfx.charge_up(_mouth(boss.global_position, dir), warn, 1.2)   # 1. Magie sammelt sich im Maul
 		boss.world.match_audio.play_at("cast_frost_nova", boss.global_position)
 
 
@@ -407,13 +429,21 @@ func _process_storms(delta: float) -> void:
 	_storms = _storms.filter(func(s: Dictionary) -> bool: return s.left > 0.0)
 
 
-# --- Arktischer Schrei (Eisdrache) --------------------------------------------------------
+# --- Gebrüll: Arktischer Schrei (Eisdrache) und Drachengebrüll (Feuerdrache) ---------------
+# Ein Ablauf für beide; die Wirkung steht in den Daten: slow/attack_slow (Helden langsamer), armor_shred
+# (Rüstung und Magieresistenz der Helden runter), ally_armor (Gegner gepanzert), ally_empower (Gegner stärker).
+
+func _roar_key() -> String:
+	return "frost_roar" if cfg.has("frost_roar") else "fire_roar"
+
 
 func _start_roar() -> void:
-	var fr: Dictionary = cfg.frost_roar
-	_roar_left = float(_phase_value("frost_roar", "cooldown", 18.0))
+	var key := _roar_key()
+	var fr: Dictionary = cfg[key]
+	_roar_left = float(_phase_value(key, "cooldown", 18.0))
 	var warn := float(fr.get("warning", 0.8))
 	var r := float(fr.get("radius", 14.0))
+	var c := _color()
 	_cast_left = warn + 0.6
 	var anim := String(fr.get("anim", "Roar"))
 	if boss.visual.anim_player != null and boss.visual.anim_player.has_animation(anim):
@@ -421,28 +451,126 @@ func _start_roar() -> void:
 		boss.visual.play_action(anim, maxf(0.5, boss.visual.anim_player.get_animation(anim).length * 0.5 / maxf(0.2, warn)))
 	_pending.append({"time": warn, "kind": "roar", "pos": boss.global_position})
 	if boss.world != null:
-		boss.world.vfx.ring(boss.global_position, r, r, Color(0.6, 0.9, 1.0, 0.9), warn, 0.2)
-		boss.world.vfx.ring(boss.global_position, 0.5, r, Color(0.5, 0.8, 1.0, 0.6), warn, 0.12)
+		boss.world.vfx.ring(boss.global_position, r, r, Color(c, 0.9), warn, 0.2)
+		boss.world.vfx.ring(boss.global_position, 0.5, r, Color(c.darkened(0.15), 0.6), warn, 0.12)
 
 
 func _release_roar(pos: Vector3) -> void:
-	var fr: Dictionary = cfg.frost_roar
+	var fr: Dictionary = cfg[_roar_key()]
 	var r := float(fr.get("radius", 14.0))
+	var c := _color()
+	var duration := float(fr.get("duration", 4.0))
 	for h in _heroes_in(pos, r):
-		_chill(h, float(fr.get("slow", 0.4)), float(fr.get("attack_slow", 0.4)), float(fr.get("duration", 4.0)))
-	var armor := float(fr.get("ally_armor", 25.0))
+		_chill(h, float(fr.get("slow", 0.0)), float(fr.get("attack_slow", 0.0)), duration)
+		if float(fr.get("armor_shred", 0.0)) > 0.0:
+			h.status.apply(StatusEffects.ARMOR_SHRED, duration, float(fr.armor_shred), boss)
 	var allies: Array[Enemy] = boss.spawner.enemies_in_radius(pos, r)
 	for e in allies:
-		if e != boss and e.is_alive():
-			e.status.apply(StatusEffects.ARMOR_BONUS, float(fr.get("ally_duration", 6.0)), armor, boss)
-			if boss.world != null:
-				boss.world.vfx.sparkles(e.global_position + Vector3(0, 0.8, 0), Color(0.6, 0.9, 1.0), 10, 0.6, 1.0)
+		if e == boss or not e.is_alive():
+			continue
+		if float(fr.get("ally_armor", 0.0)) > 0.0:
+			e.status.apply(StatusEffects.ARMOR_BONUS, float(fr.get("ally_duration", 6.0)), float(fr.ally_armor), boss)
+		if float(fr.get("ally_empower", 0.0)) > 0.0:
+			e.status.apply(StatusEffects.EMPOWER, float(fr.get("ally_duration", 6.0)), float(fr.ally_empower), boss)
+		if boss.world != null:
+			boss.world.vfx.sparkles(e.global_position + Vector3(0, 0.8, 0), c, 10, 0.6, 1.0)
 	if boss.world != null:
-		boss.world.vfx.shockwave(pos, r, Color(0.6, 0.9, 1.0), 0.7)
-		boss.world.vfx.shockwave(pos, r * 0.6, Color(0.9, 0.97, 1.0), 0.9)
-		boss.world.vfx.smoke_cloud(pos + Vector3(0, 0.5, 0), Color(0.85, 0.93, 1.0, 0.7), 3.0, 0.0, 14, 1.2)
+		boss.world.vfx.shockwave(pos, r, c, 0.7)
+		boss.world.vfx.shockwave(pos, r * 0.6, c.lightened(0.6), 0.9)
+		boss.world.vfx.smoke_cloud(pos + Vector3(0, 0.5, 0), Color(c.lightened(0.5), 0.7), 3.0, 0.0, 14, 1.2)
 		boss.world.camera_rig.shake(0.45)
 		boss.world.match_audio.play_at("warcry", pos)
+
+
+# --- Feuerball (Feuerdrache) ----------------------------------------------------------------
+# Glut sammelt sich im Maul (Warnkreis am Ziel), dann fliegt ein schwerer Feuerball; Explosion mit Verbrennung.
+
+func _start_fireball() -> void:
+	var fb: Dictionary = cfg.fireball
+	var target := _nearest_hero(float(fb.get("range", 14.0)))
+	if target == null:
+		_fireball_left = 1.0
+		return
+	_fireball_left = float(_phase_value("fireball", "cooldown", 8.0))
+	var warn := float(fb.get("warning", 1.0))
+	var flight := float(fb.get("flight", 0.5))
+	var r := float(fb.get("radius", 2.6))
+	var dir := _flat(target.global_position - boss.global_position).normalized()
+	boss.rotation.y = atan2(-dir.x, -dir.z)
+	var pos := Vector3(target.global_position.x, 0.0, target.global_position.z)
+	_cast_left = warn + 0.3
+	var anim := String(fb.get("anim", "Fire_Breath"))
+	if boss.visual.anim_player != null and boss.visual.anim_player.has_animation(anim):
+		boss.visual.play_action(anim, boss.visual.anim_player.get_animation(anim).length * 0.6 / maxf(0.3, warn))
+	_pending.append({"time": warn, "kind": "fireball_launch", "pos": pos, "dir": dir})
+	_pending.append({"time": warn + flight, "kind": "fireball_hit", "pos": pos})
+	if boss.world != null:
+		boss.world.vfx.charge_up(_mouth(boss.global_position, dir), warn, 1.2, _color())
+		boss.world.vfx.ring(pos, r, r, Color(1.0, 0.45, 0.15, 0.95), warn + flight, 0.22)
+		boss.world.vfx.ring(pos, 0.3, r, Color(1.0, 0.35, 0.1, 0.7), warn + flight, 0.12)
+		boss.world.match_audio.play_at("cast_fireball", boss.global_position)
+
+
+func _launch_fireball(target_pos: Vector3, dir: Vector3) -> void:
+	if boss.world != null:
+		boss.world.vfx.fire_bolt(_mouth(boss.global_position, dir), target_pos + Vector3(0, 0.5, 0), float(cfg.fireball.get("flight", 0.5)))
+
+
+func _fireball_hit(pos: Vector3) -> void:
+	var fb: Dictionary = cfg.fireball
+	var r := float(fb.get("radius", 2.6))
+	_fire_hit(pos, r, float(fb.get("damage", 110.0)), float(fb.get("burn_dps", 18.0)), float(fb.get("burn_time", 3.0)))
+	if boss.world != null:
+		boss.world.camera_rig.shake(0.3)
+
+
+## Feuer-Einschlag: Schaden im Kreis, Verbrennung, Explosion und Brandfleck
+func _fire_hit(pos: Vector3, radius: float, damage: float, burn_dps: float, burn_time: float) -> void:
+	for h in _hit_heroes(pos, radius, damage, "fire"):
+		if burn_dps > 0.0:
+			h.status.apply(StatusEffects.BURN, burn_time, burn_dps * boss.damage_multiplier, boss)
+	if boss.world != null:
+		boss.world.vfx.fire_explosion(pos + Vector3(0, 0.5, 0), radius)
+		boss.world.vfx.decal(pos, "scorch_03", radius * 0.9, Color(0.12, 0.06, 0.03, 0.85), 3.0, 0.0, false)
+		boss.world.match_audio.play_at("fireball_impact", pos)
+
+
+# --- Meteorschauer (Feuerdrache) ------------------------------------------------------------
+# Kreise erscheinen nacheinander um einen Helden; jeder Meteor fällt erst nach seiner Vorwarnung.
+
+func _start_meteors() -> void:
+	var ms: Dictionary = cfg.meteor_shower
+	_meteor_left = float(_phase_value("meteor_shower", "cooldown", 14.0))
+	var candidates := _heroes_in(boss.global_position, SOULFIRE_RANGE).filter(func(h: Hero) -> bool:
+		return not h.status.has(StatusEffects.UNTARGETABLE))
+	if candidates.is_empty():
+		_meteor_left = 1.0
+		return
+	var center: Vector3 = candidates.pick_random().global_position
+	var warn := float(ms.get("warning", 1.0))
+	var r := float(ms.get("radius", 1.8))
+	var spread := float(ms.get("spread", 4.5))
+	_cast_left = 1.2
+	var anim := String(ms.get("anim", "Fly"))
+	if boss.visual.anim_player != null and boss.visual.anim_player.has_animation(anim):
+		boss.visual.play_action(anim, 0.8)
+	for i in int(ms.get("count", 6)):
+		# erster Meteor genau auf den Helden, die übrigen verstreut drumherum
+		var off := Vector3.ZERO if i == 0 else Vector3(randf_range(-1, 1), 0, randf_range(-1, 1)).normalized() * randf_range(1.0, spread)
+		var pos := Vector3(center.x, 0.0, center.z) + off
+		var t := warn + i * float(ms.get("interval", 0.35))
+		_pending.append({"time": t - 0.6, "kind": "meteor_fall", "pos": pos})
+		_pending.append({"time": t, "kind": "meteor_hit", "pos": pos})
+		if boss.world != null:
+			boss.world.vfx.ring(pos, r, r, Color(1.0, 0.45, 0.15, 0.95), t, 0.2)
+			boss.world.vfx.decal(pos, "rune_circle", r * 0.9, Color(1.0, 0.4, 0.1, 0.55), t + 0.1, 0.3)
+
+
+func _meteor_hit(pos: Vector3) -> void:
+	var ms: Dictionary = cfg.meteor_shower
+	_fire_hit(pos, float(ms.get("radius", 1.8)), float(ms.get("damage", 70.0)), float(ms.get("burn_dps", 12.0)), float(ms.get("burn_time", 3.0)))
+	if boss.world != null:
+		boss.world.camera_rig.shake(0.15)
 
 
 func _on_boss_died() -> void:

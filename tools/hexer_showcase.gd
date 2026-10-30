@@ -10,6 +10,8 @@ const SHOT_TIMES := {
 	"abyss_hexer": [0.6, 2.2, 3.1, 3.4, 3.7, 4.0, 4.3, 4.9],
 	# Odem (Warnung ab ~4,1 s, Strahl ~5,1 s), Schrei (~8,1 s), danach Phase 2 erzwungen: Schneesturm und Einfrieren
 	"ice_drake": [5.5, 6.0, 6.45, 6.6, 6.75, 6.95, 7.3, 7.6, 7.9, 8.6, 9.6, 10.1, 12.5, 14.0, 15.5, 16.5],
+	# Feuerball (Glut ~5,2–6,2 s, Flug, Einschlag ~6,7 s), Gebrüll (~9,7 s), Phase 2 bei 11 s: Meteorschauer
+	"fire_drake": [2.0, 5.6, 6.3, 6.55, 6.8, 7.4, 9.7, 10.2, 11.6, 12.1, 12.6, 13.2],
 }
 
 var _enemy_id := "abyss_hexer"
@@ -76,11 +78,13 @@ func _run_shots(m: MatchController, dir: String) -> void:
 			m.local_hero.health.set_max_hp(50000.0)
 			m.local_hero.health.heal(50000.0)
 			placed = true
-		if foe.brain != null and not forced_phase and elapsed >= 11.0 and foe.brain.cfg.has("blizzard"):
-			# Phase 2 erzwingen, damit der Schneesturm sofort kommt
+		if foe.brain != null and not forced_phase and elapsed >= 11.0 and (foe.brain.cfg.has("blizzard") or foe.brain.cfg.has("meteor_shower")):
+			# Phase 2 erzwingen, damit Schneesturm bzw. Meteorschauer sofort kommen
 			forced_phase = true
 			m.combat.deal_damage(null, foe, foe.health.max_hp * 0.45, DamageInfo.Type.TRUE)
 			foe.brain._blizzard_left = 0.0
+			foe.brain._meteor_left = 0.0
+			foe.brain._cast_left = 0.0
 		if elapsed >= float(times[index]):
 			var path := dir.path_join("%02d.png" % index)
 			get_viewport().get_texture().get_image().save_png(path)

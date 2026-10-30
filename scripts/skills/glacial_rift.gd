@@ -47,7 +47,7 @@ func start(p_hero: Hero, p_world, point: Vector3, p_length: float, p_damage: flo
 	dir = dir.normalized()
 	world.vfx.line_indicator(origin + dir * 0.5, dir, length, HALF_WIDTH * 2.0, COLOR, 0.55 + CHARGE)
 	# Eisangriff in acht Schritten (VfxLayer): aufladen, Stachelbahn aus dem Boden, großer Abschluss am Ende der Bahn
-	world.vfx.ice_charge(hero.global_position + Vector3(0, 1.2, 0) + dir * 0.6, CHARGE, 0.8)
+	world.vfx.charge_up(hero.global_position + Vector3(0, 1.2, 0) + dir * 0.6, CHARGE, 0.8)
 	world.vfx.ice_spike_path(origin, dir, length, FAN_DEGREES, wall_time, SPEED, null, CHARGE, START)
 	world.vfx.ice_impact(origin + dir * length, 1.8, wall_time, CHARGE + (length - START) / SPEED)
 	_front = -SPEED * CHARGE   # die Front startet erst nach dem Aufladen

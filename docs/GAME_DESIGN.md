@@ -51,7 +51,8 @@ Gemeinsam für alle:
 | Grabritter | `grave_knight` | Elite | **Bodenschlag:** roter Warnkreis (1 s, steht still), dann Schaden und Verlangsamung im Kreis |
 | Abgrund-Hexer | `abyss_hexer` | Elite (ab Welle 7) | Fernkämpfer (6 m, violette Zauberkugeln); **Staffschlag:** reißt den Stab hoch und stößt ihn auf den Boden (1 s Ankündigung mit Warnkreis, 4,5 m, Schaden und Verlangsamung). Modell aus Tripo auf dem KayKit-Skelett, eigene Animation `Staff_Slam` |
 | Eisdrache | `ice_drake` | Mini-Boss mit Bossphasen (Welle 8) | Issue #9, siehe unten. Modell: Tripo-Drache auf dem Skelett des Glutdrachen (`FrostDrake.glb`) |
-| Knochenkoloss | `colossus` | Mini-Boss (Welle 5 und 9) | sehr zäh, Kontrollresistenz 60 %, großer Bodenschlag |
+| Feuerdrache | `fire_drake` | Mini-Boss mit Bossphasen (Welle 9) | Issue #8, siehe unten. Modell: Frostdrache umgefärbt (dunkelrot, glühende Zacken, pulsierendes Glühen, Glutfunken), eigene Animation Schwanzschlag |
+| Knochenkoloss | `colossus` | Mini-Boss (Welle 5) | sehr zäh, Kontrollresistenz 60 %, großer Bodenschlag |
 | Morvath, der Totenbeschwörer | `morvath` | Endboss (Welle 10) | drei Phasen, siehe unten |
 
 Die vier neuen Figuren sind eigene Blender-Modelle (`tools/blender_build_enemies.py`) auf dem KayKit-Skelett.
@@ -74,6 +75,15 @@ Die vier neuen Figuren sind eigene Blender-Modelle (`tools/blender_build_enemies
 - **Eisfeuer-Odem (ab Phase 1):** Kegel (9 m, 70°) erscheint 1 s vorher am Boden, währenddessen sammelt sich Magie im Maul. Dann fliegen Eiszapfen aus dem Maul, Stacheln laufen nach vorn (22 m/s) und brechen um das Ziel als großer Eiscluster aus. Wer bei der Ankündigung im Kegel stand, nimmt Frostschaden, sobald die Stacheln ihn erreichen, und wird verlangsamt (60 %, Angriffe 40 %).
 - **Arktischer Schrei (ab Phase 1, alle 18 s):** Helden in 14 m 4 s lang 40 % langsamer (Laufen und Angriff); Gegner in 14 m 6 s lang +25 Rüstung und Magieresistenz.
 - **Schneesturm (ab Phase 2, unter 60 %):** Kreis (4 m) an einem Helden, 1 s Warnung, dann 5 s Sturm: Schaden alle 0,5 s, jeder Takt ein Stapel Erfrierung, bei 6 Stapeln 1,5 s eingefroren.
+- **Phase 3 (unter 30 %):** 30 % schnellere Angriffe, 20 % schneller.
+
+**Feuerdrache (Issue #8, drei Phasen, `data.boss`):**
+- **Kampfart:** Feuerbälle aus 8 m mit Flächenschaden (2 m, halber Schaden daneben); dicht am Körper Klaue, Biss oder Schwanzschlag.
+- **Elemente:** immun gegen Feuer, +50 % durch Eis und Gift. Rüstung 65.
+- **Feuerpest (passiv):** Jeder Treffer setzt den Helden 3 s in Brand (Schaden je Sekunde, ignoriert Rüstung).
+- **Schwerer Feuerball (ab Phase 1):** Glut sammelt sich 1 s im Maul, Warnkreis (2,6 m) am Ziel, dann fliegt der Feuerball: Explosion, Verbrennung.
+- **Drachengebrüll (ab Phase 1, alle 18 s):** Helden in 14 m verlieren 5 s lang 20 Rüstung und Magieresistenz; Gegner in 14 m verursachen 6 s lang 30 % mehr Schaden.
+- **Meteorschauer (ab Phase 2, unter 60 %):** Der Drache hebt ab, sechs Meteore fallen nacheinander um einen Helden, jeder mit eigenem Warnkreis.
 - **Phase 3 (unter 30 %):** 30 % schnellere Angriffe, 20 % schneller.
 
 Phasenwechsel und Auftritt werden als Banner angekündigt; die Bossleiste oben zeigt Lebenspunkte und Phase. Stirbt Morvath, zerfallen seine Beschwörungen. Betäubung unterbricht Bodenschläge (Bosse sind dagegen zu 75 % resistent).
@@ -105,7 +115,7 @@ Helden ziehen Gegner also schon durch ihre Nähe auf sich. Das ist die Grundlage
   6. Grabritter
   7. Dreifacher Ansturm
   8. Der Eisdrache (Mini-Boss mit Bossphasen)
-  9. Die letzte Flut (Mini-Boss)
+  9. Die letzte Flut (Feuerdrache, Mini-Boss mit Bossphasen)
   10. Morvath, der Totenbeschwörer (Endboss)
 
 ## Zitadelle des Lichts (Phase A umgesetzt, Issue #4)

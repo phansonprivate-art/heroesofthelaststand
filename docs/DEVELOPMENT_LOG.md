@@ -808,3 +808,21 @@ Vorgabe des Spielers: acht Schritte für den Eisangriff (Aufladen, Stacheln aus 
   - 121 Tests bestanden (Glacial-Rift- und Odem-Test an das neue Timing angepasst, prüfen jetzt auch „noch kein Treffer“ davor);
   - Bildfolgen beider Angriffe im Spiel angesehen: alle acht Schritte sichtbar.
 - **Nicht geprüft:** Bildrate bei vielen gleichzeitigen Eisangriffen; Glacial Rift auf Stufe 1 und 2 nicht angesehen; der große Abschluss des Rifts lag in der Showcase-Kamera am Bildrand.
+
+## 2026-10-30 – Feuerdrache als Boss (Issue #8)
+
+Wünsche des Spielers: Feuerdrache aus Issue #8; Design „in ein schimmerndes Rot“, dafür den Eisdrachen nehmen und umbauen. Ich habe vorgeschlagen: Farbe plus Effekte im Spiel, Form unverändert; der Spieler hat zugestimmt („ok dann mach weiter“).
+- **Modell:** `tools/blender_recolor_drake.py` färbt `FrostDrake.glb` zu `FireDrake.glb` um (dunkelrote Schuppen, orange-goldene Zacken mit Leuchttextur, leichter Glanz). Drei Durchgänge nach Bildern: erst bräunlich mit weiß ausgebranntem Leuchten, dann zu orange, jetzt dunkelrot mit glühenden Zacken.
+- **Neue Animation `Tail_Swipe`** (1,5 s): Kopie von Idle, Rumpf dreht in den Schlag, der Schwanz peitscht mit Verzögerung herum, Kopf dreht gegen.
+- **Schimmern im Spiel:** `CharacterVisual.pulse_glow` (Leuchten pulsiert, Daten `glow_pulse`), aufsteigende Glutfunken (`aura_fx: "embers"`).
+- **Kampf:** neue Zustände `burn` (Schaden über Zeit, jetzt auch an Helden; `dot_handler` bekommt das Element), `armor_shred` (Rüstung und MR der Helden runter), `empower` (Gegner mehr Schaden). Geschosse mit `splash` und `element`. BossBrain: `fireball`, `meteor_shower`, Gebrüll als ein Ablauf für `frost_roar` und `fire_roar`. `charge_up` (früher `ice_charge`) mit Farbe, `fire_bolt`, Brennen als Zustandseffekt am Helden.
+- **Daten:** `fire_drake` (Mini-Boss mit drei Phasen) in Welle 9 statt des Knochenkolosses. Alle Werte Schätzwerte.
+- **Werkzeuge:** Drachen-Viewer mit `--model=`, zeigt nur vorhandene Animationen, Bilder von oben; `tools/fire_drake_showcase.cmd`.
+- **Geprüft:**
+  - 127 Tests bestanden, davon 6 neue in `tests/test_fire_drake.gd` (Daten und Animationen, Elemente, Feuerpest und Flächenschaden, schwerer Feuerball, Meteorschauer, Drachengebrüll);
+  - Viewer-Bilder (Farbe, Schwanzschlag von oben) und eine Bildfolge aus einer echten Runde: Feuerbälle mit Brand, Aufladen, Warnkreis, Flug, Explosion, Gebrüll, Meteorschauer.
+- **Nicht geprüft:**
+  - Werte nicht gegengespielt (Welle 9 mit Feuerdrache statt Koloss);
+  - das Pulsieren und die Glutfunken nur auf Standbildern;
+  - beim Meteorschauer hebt der Drache mit der Flug-Animation ab und landet abrupt – wirkt auf einem Bild unruhig;
+  - Zitadellenkarte und Mehrspieler nicht geprüft.

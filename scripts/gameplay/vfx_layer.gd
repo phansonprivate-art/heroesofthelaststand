@@ -93,6 +93,16 @@ func track_unit(unit: Node3D) -> void:
 	if status == null:
 		return
 	status.effects_changed.connect(_update_status_fx.bind(unit))
+	# Dauerhafte Aura aus den Gegnerdaten: "embers" = aufsteigende Glutfunken (Feuerdrache)
+	var data: Variant = unit.get("data")
+	if data is Dictionary and String(data.get("aura_fx", "")) == "embers":
+		var r := maxf(0.6, float(data.get("body_radius", 0.0)))
+		var p := _attached_emitter(unit, "spark_05", Color(1.0, 0.55, 0.15), Vector3(0, 1.3, 0), 28, 1.6, 0.17,
+			Vector3(0, 1.6, 0), r)
+		if unit.has_signal("died"):
+			unit.connect("died", func(_u: Node, _i: DamageInfo) -> void:
+				if is_instance_valid(p):
+					p.emitting = false)
 
 
 func _update_status_fx(unit: Node3D) -> void:
@@ -104,6 +114,7 @@ func _update_status_fx(unit: Node3D) -> void:
 		StatusEffects.STUN: status.is_stunned(),
 		StatusEffects.SLOW: status.has(StatusEffects.SLOW),
 		StatusEffects.POISON: status.has(StatusEffects.POISON),
+		StatusEffects.BURN: status.has(StatusEffects.BURN),
 		StatusEffects.TAUNT: status.has(StatusEffects.TAUNT),
 		StatusEffects.DAMAGE_REDUCTION: status.damage_reduction() > 0.0,
 	}
@@ -143,6 +154,9 @@ func _make_status_fx(id: String, unit: Node3D) -> Node3D:
 		StatusEffects.POISON:
 			return _attached_emitter(unit, "circle_02", Color(0.45, 1.0, 0.3, 0.9), Vector3(0, head * 0.5, 0), 8, 1.1, 0.3,
 				Vector3(0, 1.2, 0), 0.4)
+		StatusEffects.BURN:
+			return _attached_emitter(unit, "flame_03", Color(1.0, 0.5, 0.15, 0.9), Vector3(0, head * 0.45, 0), 14, 0.7, 0.45,
+				Vector3(0, 2.2, 0), 0.35)
 		StatusEffects.TAUNT:
 			var mark := MeshInstance3D.new()
 			var q := QuadMesh.new()
@@ -515,6 +529,19 @@ func end_trail(trail: Node3D, linger := 0.8) -> void:
 	trail.get_tree().create_timer(linger, false).timeout.connect(trail.queue_free)
 
 
+## Schwerer Feuerball (Feuerdrache): Flammenschweif fliegt in `time` Sekunden von `from` nach `to` (leichter Bogen).
+## Den Einschlag (Explosion, Schaden) löst der Aufrufer aus.
+func fire_bolt(from: Vector3, to: Vector3, time: float, size := 1.4) -> void:
+	var trail := fire_trail(size)
+	trail.global_position = from
+	var mid := (from + to) * 0.5 + Vector3(0, 1.2, 0)
+	var t := trail.create_tween()
+	t.tween_method(func(u: float) -> void:
+		if is_instance_valid(trail):
+			trail.global_position = from.lerp(mid, u).lerp(mid.lerp(to, u), u), 0.0, 1.0, time)
+	t.tween_callback(func() -> void: end_trail(trail, 0.5))
+
+
 ## Feuerexplosion: Flipbook-Explosion, kleinere Nebenexplosionen und ein Lichtblitz.
 ## radius = Wirkradius in Metern (die sichtbare Feuerkugel ist etwas kleiner).
 func fire_explosion(pos: Vector3, radius: float) -> void:
@@ -786,7 +813,7 @@ func cone_indicator(from: Vector3, dir: Vector3, length: float, angle_deg: float
 
 # --- Eisangriff in acht Schritten ------------------------------------------------------------------------------
 # Eisdrache (Eisfeuer-Odem): Zapfen fliegen aus dem Maul. Arcanist (Glacial Rift): Stacheln brechen aus dem Boden.
-#   1 ice_charge      Magie sammelt sich und bricht mit einem Blitz los
+#   1 charge_up       Magie sammelt sich und bricht mit einem Blitz los (Farbe wählbar, auch für Feuer)
 #   2–4 ice_spike_path Stacheln entlang der Bahn, je näher am Ziel desto größer, kleinere fächern zu den Seiten auf
 #   5–6 ice_impact     Boden reißt um das Ziel auf, Brocken fliegen, großer Eiscluster, Lichtblitz, Kamerastoß
 #   7 (in _spike)     Stacheln schmelzen von oben und zerspringen in Splitter
@@ -797,9 +824,9 @@ const ICICLE_FLIGHT := 0.22   ## Flugzeit eines Zapfens vom Maul zum Boden (Scha
 
 
 ## 1. Aufladen: Funken strömen zum Punkt, ein Glühen wächst; nach `duration` bricht es mit einem Blitz los.
-func ice_charge(pos: Vector3, duration: float, size := 1.0) -> void:
+func charge_up(pos: Vector3, duration: float, size := 1.0, color := ICE_COLOR) -> void:
 	if _reserve():
-		var p := _particles(44, minf(duration, 0.7), 0.24 * size, Color(0.72, 0.93, 1.0), true, "spark_05")
+		var p := _particles(44, minf(duration, 0.7), 0.24 * size, color.lightened(0.3), true, "spark_05")
 		p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 		p.emission_sphere_radius = 1.7 * size
 		p.initial_velocity_min = 0.0
@@ -817,14 +844,14 @@ func ice_charge(pos: Vector3, duration: float, size := 1.0) -> void:
 		mat.billboard_keep_scale = true   # sonst ignoriert das Billboard die Skalierung und das Glühen wächst nicht
 		mat.no_depth_test = true          # leuchtet auch, wenn das Maul im Kopf steckt
 		mat.render_priority = 2
-		mat.albedo_color = Color(0.6, 0.9, 1.0, 0.85)
+		mat.albedo_color = Color(color, 0.85)
 		glow.material_override = mat
 		glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(glow)
 		glow.global_position = pos
 		glow.scale = Vector3.ONE * 0.1
 		var light := OmniLight3D.new()
-		light.light_color = ICE_COLOR
+		light.light_color = color
 		light.light_energy = 0.0
 		light.omni_range = 4.0 * size
 		glow.add_child(light)
@@ -835,9 +862,9 @@ func ice_charge(pos: Vector3, duration: float, size := 1.0) -> void:
 		t.chain().tween_property(glow, "scale", Vector3.ONE * 0.05, 0.12)
 		t.tween_callback(_release.bind(glow))
 	get_tree().create_timer(duration, false).timeout.connect(func() -> void:
-		energy_burst(pos, ICE_COLOR, 1.8 * size, 0.35)
-		burst(pos, Color(0.85, 0.96, 1.0), 16, 6.0 * size, 0.3, 0.4, {"gravity": Vector3.ZERO, "tex": "spark_05"})
-		_light_flash(pos, ICE_COLOR, 4.0, 7.0 * size, 0.3))
+		energy_burst(pos, color, 1.8 * size, 0.35)
+		burst(pos, color.lightened(0.5), 16, 6.0 * size, 0.3, 0.4, {"gravity": Vector3.ZERO, "tex": "spark_05"})
+		_light_flash(pos, color, 4.0, 7.0 * size, 0.3))
 
 
 ## 2.–4. Stachelbahn von `from` in Richtung `dir`: Hauptstacheln wachsen mit dem Abstand, kleinere fächern seitlich

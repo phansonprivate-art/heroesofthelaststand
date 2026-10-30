@@ -66,6 +66,10 @@ func setup(hero_data: Dictionary, p_combat: CombatService, p_enemies: EnemySpawn
 	mana = stats.max_mana()
 	_max_mana_cache = mana
 	status.max_slow = float(GameData.attribute_rules.get("caps", {}).get("slow", 0.7))
+	# Schaden über Zeit an Helden (Verbrennung des Feuerdrachen): über den CombatService, ignoriert Rüstung
+	status.dot_handler = func(src: Node, amount: float, element: String) -> void:
+		if is_alive():
+			combat.deal_damage(src, self, amount, DamageInfo.Type.TRUE, false, element)
 	health.died.connect(_on_died)
 	health.damaged.connect(func(_i: DamageInfo) -> void: visual.flash(Color(1, 0.3, 0.25)))
 	visual.setup(data.model, data.hidden_parts, data.model_scale, data.anims, data.color)
@@ -89,11 +93,12 @@ func gain_xp(amount: int) -> void:
 
 ## Für die Schadensberechnung im CombatService
 func get_armor() -> float:
-	return stats.armor() + status.magnitude(StatusEffects.ARMOR_BONUS)
+	return stats.armor() + status.magnitude(StatusEffects.ARMOR_BONUS) - status.magnitude(StatusEffects.ARMOR_SHRED)
 
 
+## Drachengebrüll (ARMOR_SHRED) senkt auch die Magieresistenz
 func get_magic_resist() -> float:
-	return stats.magic_resist()
+	return stats.magic_resist() - status.magnitude(StatusEffects.ARMOR_SHRED)
 
 
 ## Übernimmt geänderte Werte (Levelaufstieg, Attributkauf). Gewonnene Max-LP/-Mana werden aufgefüllt.

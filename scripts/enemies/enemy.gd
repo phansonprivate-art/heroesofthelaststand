@@ -74,9 +74,9 @@ func setup(enemy_data: Dictionary, path: PackedVector3Array, p_core: DefenseCore
 	status.max_slow = float(GameData.attribute_rules.get("caps", {}).get("slow", 0.7))
 	status.effects_changed.connect(_on_status_changed)
 	# Gift: Schaden über den CombatService, damit er als Beteiligung des Verursachers zählt; ignoriert Rüstung
-	status.dot_handler = func(src: Node, amount: float) -> void:
+	status.dot_handler = func(src: Node, amount: float, element: String) -> void:
 		if is_alive():
-			combat.deal_damage(src, self, amount, DamageInfo.Type.TRUE, false, "poison")
+			combat.deal_damage(src, self, amount, DamageInfo.Type.TRUE, false, element)
 	_threat_seconds = float(GameData.setting("enemies", "threat_seconds", 4.0))
 	_corpse_seconds = float(GameData.setting("enemies", "corpse_seconds", 2.5))
 	health.setup(data.max_hp * hp_multiplier)
@@ -84,6 +84,9 @@ func setup(enemy_data: Dictionary, path: PackedVector3Array, p_core: DefenseCore
 	health.died.connect(_on_died)
 	health.changed.connect(_on_health_changed)
 	visual.setup(data.model, [], data.model_scale, data.anims, Color(0.75, 0.7, 0.6))
+	var pulse: Array = data.get("glow_pulse", [])   ## [niedrig, hoch, Periode]: Eigenleuchten pulsiert (Feuerdrache)
+	if pulse.size() == 3:
+		visual.pulse_glow(float(pulse[0]), float(pulse[1]), float(pulse[2]))
 	var bar_height := float(data.get("bar_height", 0.0))
 	health_bar.position.y = bar_height if bar_height > 0.0 else 2.2 * data.model_scale + 0.3
 	health_bar.visible = false
@@ -314,6 +317,7 @@ func _update_windup(delta: float) -> void:
 	var amount: float = (data.structure_damage if target == core or target is MapStructure else data.damage) * damage_multiplier
 	if _melee_swing:
 		amount = float(data.melee.get("damage", data.damage)) * damage_multiplier
+	amount *= 1.0 + status.magnitude(StatusEffects.EMPOWER)   # Drachengebrüll stärkt die Diener
 	if data.projectile.is_empty() or _melee_swing:
 		combat.deal_damage(self, target, amount, DamageInfo.Type.PHYSICAL)
 		_apply_on_hit(target)
@@ -328,9 +332,23 @@ func _update_windup(delta: float) -> void:
 
 ## Einschlag eines eigenen Geschosses (von Projectile aufgerufen).
 func hit_target(t: Node3D, amount: float, _crit: bool) -> void:
+	var element := String(data.projectile.get("element", ""))
 	if is_instance_valid(t):
-		combat.deal_damage(self, t, amount, DamageInfo.Type.MAGIC)
+		combat.deal_damage(self, t, amount, DamageInfo.Type.MAGIC, false, element)
 		_apply_on_hit(t)
+	# Flächenschaden (Feuerball): weitere Helden im Umkreis nehmen halben Schaden, Explosion am Einschlag
+	var splash := float(data.projectile.get("splash", 0.0))
+	if splash <= 0.0 or spawner == null:
+		return
+	var center: Vector3 = t.global_position if is_instance_valid(t) else global_position
+	for h: Hero in spawner.heroes:
+		if h == t or not is_instance_valid(h) or not h.is_alive():
+			continue
+		if _flat(h.global_position - center).length() <= splash:
+			combat.deal_damage(self, h, amount * 0.5, DamageInfo.Type.MAGIC, false, element)
+			_apply_on_hit(h)
+	if world != null:
+		world.vfx.fire_explosion(center + Vector3(0, 0.6, 0), splash)
 
 
 ## Passiver Treffereffekt (data.on_hit), z. B. Unterkühlung des Eisdrachen: bremst Lauf- und Angriffstempo des Helden.
@@ -344,6 +362,8 @@ func _apply_on_hit(t: Node3D) -> void:
 		hero.status.apply(StatusEffects.SLOW, duration, float(oh.slow), self)
 	if float(oh.get("attack_slow", 0.0)) > 0.0:
 		hero.status.apply(StatusEffects.CHILL, duration, float(oh.attack_slow), self)
+	if float(oh.get("burn_dps", 0.0)) > 0.0:   # Feuerpest: Verbrennung über Zeit
+		hero.status.apply(StatusEffects.BURN, float(oh.get("burn_time", 3.0)), float(oh.burn_dps) * damage_multiplier, self)
 
 
 # --- Zusatzfähigkeit (Elite, Mini-Boss) ---------------------------------------

@@ -74,7 +74,7 @@ func test_elements_and_ice_immunity(t) -> void:
 	var fire := m.combat.deal_damage(null, drake, 500.0, DamageInfo.Type.MAGIC, false, "fire")
 	t.check(absf(fire - plain * 1.5) < 0.5, "Feuer +50 %% (%.0f statt %.0f)" % [fire, plain])
 	hp = drake.health.hp
-	drake.status.dot_handler.call(null, 100.0)
+	drake.status.dot_handler.call(null, 100.0, "poison")
 	t.check(absf(hp - drake.health.hp - 150.0) < 0.5, "Gift +50 %% (%.0f)" % (hp - drake.health.hp))
 	# Frost Nova des Arcanisten: kein Schaden, keine Verlangsamung
 	var hero := m.local_hero

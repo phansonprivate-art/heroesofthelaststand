@@ -5,7 +5,7 @@ extends Node
 ##  - gleiche Effekte stapeln nicht: Dauer wird erneuert, die stärkere Wirkung gilt (Ausnahme: apply_stacking)
 ##  - cc_resist (z. B. Bosse) verkürzt die Dauer von Kontrolleffekten (stun, slow, taunt, chill)
 ##  - last_gain = tatsächlich hinzugekommene Wirkdauer der letzten Anwendung (Grundlage gegen Belohnungs-Farmen)
-## Effekte mit Schaden über Zeit (poison) rufen jede Sekunde dot_handler(source, amount) auf.
+## Effekte mit Schaden über Zeit (poison, burn) rufen jede Sekunde dot_handler(source, amount, element) auf.
 
 signal effects_changed
 
@@ -17,6 +17,10 @@ const DAMAGE_REDUCTION := "damage_reduction"
 const HASTE := "haste"            ## Angriffstempo-Bonus (Anteil)
 const CHILL := "chill"            ## Unterkühlung: Angriffstempo-Malus (Anteil), z. B. vom Eisdrachen
 const FROSTBITE := "frostbite"    ## Erfrierung: Stapel im Schneesturm, bei voller Zahl friert die Einheit ein
+const BURN := "burn"              ## Verbrennung: Schaden über Zeit (magnitude = Schaden je Sekunde), z. B. Feuerdrache
+const ARMOR_SHRED := "armor_shred"   ## senkt Rüstung und Magieresistenz um magnitude (Drachengebrüll)
+const EMPOWER := "empower"        ## Gegner verursachen magnitude mehr Schaden (Anteil, Drachengebrüll)
+const DOTS := {POISON: "poison", BURN: "fire"}   ## Schaden über Zeit -> Element für den dot_handler
 const SWIFT := "swift"            ## Lauftempo-Bonus (Anteil)
 const CRIT_BONUS := "crit_bonus"
 const ARMOR_BONUS := "armor_bonus"
@@ -30,7 +34,7 @@ const MAX_DAMAGE_REDUCTION := 0.75
 var cc_resist := 0.0          ## 0 = volle Wirkung, 0.5 = halbe Dauer
 var max_slow := 0.7
 var last_gain := 0.0
-var dot_handler: Callable     ## func(source: Node, amount: float)
+var dot_handler: Callable     ## func(source: Node, amount: float, element: String)
 var _effects: Dictionary = {}  ## id -> {left, magnitude, source, stacks, tick}
 
 
@@ -138,12 +142,12 @@ func tick(delta: float) -> void:
 	var expired := []
 	for id in _effects:
 		var e: Dictionary = _effects[id]
-		if id == POISON and dot_handler.is_valid():
+		if DOTS.has(id) and dot_handler.is_valid():
 			e.tick -= delta
 			while e.tick <= 0.0:
 				e.tick += 1.0
 				var src: Variant = e.source
-				dot_handler.call(src if src != null and is_instance_valid(src) else null, e.magnitude * e.stacks)
+				dot_handler.call(src if src != null and is_instance_valid(src) else null, e.magnitude * e.stacks, String(DOTS[id]))
 		e.left -= delta
 		if e.left <= 0.0:
 			expired.append(id)

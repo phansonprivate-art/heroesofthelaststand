@@ -8,6 +8,7 @@ signal finished(victory: bool)
 enum Phase { RUNNING, VICTORY, DEFEAT }
 
 const HERO_SCENE := preload("res://scenes/heroes/hero.tscn")
+const CLONE_BAR_SHADER := preload("res://assets/effects/health_bar.gdshader")
 
 var arena: GameMap   ## gewählte Karte (data/maps/maps.json), in _ready geladen
 @onready var core: DefenseCore = $Core
@@ -36,6 +37,8 @@ var waves_override: Array = []
 var phase := Phase.RUNNING
 var local_hero: Hero
 var heroes: Array[Hero] = []
+var clones: Array[Hero] = []     ## Doppelgänger (eigene Einheiten, zählen nicht als Helden der Runde)
+var _clone_count := 0
 var fountain: RecoveryFountain   ## Brunnen der Erholung hinter dem Kern
 var elapsed := 0.0
 
@@ -76,6 +79,7 @@ func _ready() -> void:
 	camera_rig.target = local_hero
 	camera_rig.focus = local_hero.global_position
 	hero_input.hero = local_hero
+	hero_input.main_hero = local_hero
 	hero_input.camera_rig = camera_rig
 	hero_input.enemies = spawner
 
@@ -148,6 +152,70 @@ func _spawn_hero(hero_id: String, peer_id: int) -> Hero:
 		if gold.team_balance() < start_gold:   # auch Team-Verbesserungen (Kern) sollen kaufbar sein
 			gold.grant_team(start_gold - gold.team_balance(), "test_mode", "test_mode:team")
 	return hero
+
+
+## Doppelgänger eines Helden (Issue #10): gleiche Figur, Stufe, gekaufte Punkte und Ausrüstungswerte, eigener
+## Lebensbalken mit den aktuellen Leben des Helden beim Wirken, weniger Schaden und mehr erlittener Schaden. Gegner greifen ihn an
+## (spawner.heroes); Gold und Erfahrung für seine Treffer gehen an den Helden (gleiche Spieler-ID).
+func spawn_clone(owner: Hero, pos: Vector3, duration: float, damage_share: float, damage_taken: float, hp_share: float) -> Hero:
+	var clone: Hero = HERO_SCENE.instantiate()
+	_clone_count += 1
+	clone.peer_id = owner.peer_id
+	clone.name = "Clone_%d" % _clone_count
+	heroes_root.add_child(clone)
+	clone.setup(owner.data, combat, spawner, pos, 0.0)
+	clone.global_position = pos
+	clone.projectile_root = projectiles_root
+	clone.world = self
+	clone.clone_owner = owner
+	clone.clone_left = duration
+	clone.outgoing_multiplier = damage_share
+	clone.damage_taken_multiplier = damage_taken
+	clone.stats.level = owner.stats.level
+	clone.stats.bought = owner.stats.bought.duplicate()
+	clone.inventory = owner.inventory          # nur lesend: Ausrüstungswerte gelten auch für die Kopie
+	clone.apply_equipment()
+	# Leben wie der Held im Moment des Wirkens (Wunsch des Spielers): gleiches Maximum, gleicher Stand
+	clone.health.setup(maxf(1.0, owner.health.max_hp))
+	clone.health.hp = clampf(owner.health.hp * hp_share, 1.0, clone.health.max_hp)
+	clone.health.changed.emit(clone.health.hp, clone.health.max_hp)
+	clone.mana = 0.0
+	clone._on_status_changed()   # schattenhafte Färbung und violetter Ring (Hero.CLONE_TINT / CLONE_RING)
+	_add_clone_health_bar(clone)
+	clones.append(clone)
+	spawner.heroes.append(clone)
+	vfx.smoke_cloud(pos + Vector3(0, 0.8, 0), Color(0.18, 0.1, 0.28, 0.85), 0.8, 0.0, 10, 0.8)
+	return clone
+
+
+## Lebensbalken über dem Doppelgänger (wie bei Gegnern, aber violett), damit man sieht, wie lange er noch hält.
+func _add_clone_health_bar(clone: Hero) -> void:
+	var bar := MeshInstance3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Vector2(1.0, 0.12)
+	bar.mesh = quad
+	var mat := ShaderMaterial.new()
+	mat.shader = CLONE_BAR_SHADER
+	mat.render_priority = 3
+	mat.set_shader_parameter("fill_color", Color(0.68, 0.42, 1.0))
+	bar.material_override = mat
+	bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	bar.name = "CloneHealthBar"
+	clone.add_child(bar)
+	bar.position.y = 2.2 * float(clone.data.get("model_scale", 1.0)) + 0.35
+	bar.set_instance_shader_parameter("fill", 1.0)
+	clone.health.changed.connect(func(current: float, maximum: float) -> void:
+		if is_instance_valid(bar):
+			bar.set_instance_shader_parameter("fill", current / maxf(1.0, maximum)))
+
+
+func remove_clone(clone: Hero) -> void:
+	clones.erase(clone)
+	spawner.heroes.erase(clone)
+	for e in spawner.alive_enemies():   # wer die Kopie verfolgt hat, macht mit seinem Weg weiter
+		e.forget(clone)
+	if hero_input.hero == clone:
+		hero_input.select(local_hero)
 
 
 ## Testmodus: Held direkt auf die gewählte Stufe heben (über XP, damit Werte und Freischaltungen wie im Spiel folgen).

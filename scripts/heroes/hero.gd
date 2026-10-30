@@ -14,6 +14,10 @@ const TURN_SPEED := 14.0
 const AUTO_ACQUIRE_BONUS := 1.2   ## Auto-Angriff greift Gegner etwas außerhalb der Reichweite auf
 const AUTO_LEASH_BONUS := 3.0     ## automatisch gewählte Ziele werden nicht endlos verfolgt
 const ATTACK_MOVE_ACQUIRE := 3.0  ## Suchradius-Zuschlag bei Angriffsbewegung
+const CLONE_TINT := Color(0.25, 0.12, 0.45, 0.55)   ## Doppelgänger: schattenhafte Überfärbung
+const CLONE_RING := Color(0.55, 0.3, 0.9, 0.7)
+const CLONE_ACQUIRE := 6.0        ## Doppelgänger suchen sich Gegner in diesem Umkreis selbst (Held: nur nahe Reichweite)
+const CLONE_LEASH := 9.0          ## und verfolgen sie so weit
 
 @onready var health: HealthComponent = $Health
 @onready var visual: CharacterVisual = $Visual
@@ -24,6 +28,11 @@ const ATTACK_MOVE_ACQUIRE := 3.0  ## Suchradius-Zuschlag bei Angriffsbewegung
 
 var data: Dictionary = {}
 var stats: StatBlock
+## Doppelgänger (Issue #10): Schattenkopie eines Helden – eigene Einheit, löst sich nach clone_left Sekunden auf
+var clone_owner: Hero = null
+var clone_left := 0.0
+var outgoing_multiplier := 1.0       ## Anteil am Schaden (Kopien: weniger als der Held)
+var damage_taken_multiplier := 1.0   ## erlittener Schaden (Kopien: mehr), wirkt im CombatService
 var mana := 0.0
 var projectile_root: Node3D       ## Ablage für Geschosse (Fernkampfhelden)
 var world: Node                    ## MatchController (für Fähigkeiten: Gegner, Verbündete, Effekte)
@@ -71,6 +80,7 @@ func setup(hero_data: Dictionary, p_combat: CombatService, p_enemies: EnemySpawn
 		if is_alive():
 			combat.deal_damage(src, self, amount, DamageInfo.Type.TRUE, false, element)
 	health.died.connect(_on_died)
+	health.damaged.connect(_on_damaged)
 	health.damaged.connect(func(_i: DamageInfo) -> void: visual.flash(Color(1, 0.3, 0.25)))
 	visual.setup(data.model, data.hidden_parts, data.model_scale, data.anims, data.color)
 	visual.add_animation_libraries(data.anim_libraries)
@@ -178,6 +188,11 @@ func _physics_process(delta: float) -> void:
 			_respawn()
 		return
 
+	if clone_owner != null:
+		clone_left -= delta
+		if clone_left <= 0.0 or not is_instance_valid(clone_owner):
+			dissolve()
+			return
 	idle_time += delta
 	# Regeneration ohne Quelle: zählt nicht als belohnbare Heilung
 	health.heal(stats.hp_regen() * delta, null)
@@ -269,6 +284,7 @@ func _update_windup(delta: float) -> void:
 	if status.has(StatusEffects.SANCTUARY):   # während des Ausholens den Brunnen betreten: kein Treffer
 		return
 	var roll := stats.roll_attack(rng, status.magnitude(StatusEffects.CRIT_BONUS))
+	roll.amount *= outgoing_multiplier
 	if not data.projectile.is_empty() and projectile_root != null:
 		var p := Projectile.new()
 		projectile_root.add_child(p)
@@ -284,6 +300,18 @@ func hit_target(target: Enemy, amount: float, crit: bool) -> void:
 	var dealt := combat.deal_damage(self, target, amount, stats.damage_type(), crit)
 	if dealt > 0.0:
 		apply_on_hit(target, data.on_hit, self)
+		if clone_owner != null and is_instance_valid(clone_owner) and is_instance_valid(target):
+			_clone_poison(target)
+
+
+## Doppelgänger tragen das Gift ihres Helden: Hat er Poison Mark gelernt, vergiftet jeder Treffer (Stapel wie dort).
+func _clone_poison(target: Enemy) -> void:
+	var lvl := clone_owner.abilities.level_of("poison_mark")
+	if lvl <= 0 or not target.is_alive():
+		return
+	target.status.apply_stacking(StatusEffects.POISON, float(GameData.skill_value("poison_mark", lvl, "duration", 4.0)),
+		AbilityEffects.power("poison_mark", lvl, "dps", clone_owner) * outgoing_multiplier,
+		int(GameData.skill_value("poison_mark", lvl, "max_stacks", 3)), clone_owner)
 
 
 static func apply_on_hit(target: Node, on_hit: Dictionary, source: Node) -> void:
@@ -333,9 +361,10 @@ func _on_status_changed() -> void:
 	if status.damage_reduction() > 0.0:
 		mat.albedo_color = Color(1.0, 0.85, 0.3, 0.95)
 	else:
-		mat.albedo_color = Color(data.color, 0.8)
-	# geisterhaft violett, solange der Held unverwundbar ist (Blade Dance)
-	visual.set_tint(Color(0.65, 0.45, 1.0, 0.45) if status.has(StatusEffects.UNTARGETABLE) else Color.TRANSPARENT)
+		mat.albedo_color = CLONE_RING if clone_owner != null else Color(data.color, 0.8)
+	# geisterhaft violett, solange der Held unverwundbar ist (Blade Dance); Doppelgänger bleiben schattenhaft
+	var base := CLONE_TINT if clone_owner != null else Color.TRANSPARENT
+	visual.set_tint(Color(0.65, 0.45, 1.0, 0.45) if status.has(StatusEffects.UNTARGETABLE) else base)
 
 
 func _build_shield_bubble() -> void:
@@ -371,6 +400,8 @@ func _cancel_windup() -> void:
 func _auto_acquire(bonus: float) -> void:
 	if enemies == null:
 		return
+	if clone_owner != null:
+		bonus = maxf(bonus, CLONE_ACQUIRE)
 	var e := enemies.nearest_enemy(global_position, stats.attack_range() + bonus)
 	if e != null:
 		attack_target = e
@@ -382,7 +413,7 @@ func _validate_target() -> void:
 		return
 	if not is_instance_valid(attack_target) or not attack_target.is_alive():
 		_clear_target()
-	elif _target_is_auto and _flat_dist(attack_target) > stats.attack_range() + AUTO_LEASH_BONUS:
+	elif _target_is_auto and _flat_dist(attack_target) > stats.attack_range() + (CLONE_LEASH if clone_owner != null else AUTO_LEASH_BONUS):
 		_clear_target()
 
 
@@ -416,6 +447,9 @@ func _face(point: Vector3, delta: float) -> void:
 
 
 func _on_died(_info: DamageInfo) -> void:
+	if clone_owner != null:   # Doppelgänger sterben nicht wie Helden: sie zerfallen
+		dissolve()
+		return
 	_cancel_windup()
 	abilities.cancel_queue()
 	command_stop()
@@ -425,6 +459,30 @@ func _on_died(_info: DamageInfo) -> void:
 	selection_ring.visible = false
 	visual.play("death")
 	died.emit(self)
+
+
+## Doppelgänger wehren sich: Wer sie trifft, wird zum Ziel – solange sie keinen Laufbefehl haben und noch kein
+## Ziel verfolgen (ein Befehl des Spielers geht immer vor).
+func _on_damaged(info: DamageInfo) -> void:
+	if clone_owner == null or not info.source_is_valid() or not (info.source is Enemy):
+		return
+	if has_move_target or (attack_target != null and is_instance_valid(attack_target) and attack_target.is_alive()):
+		return
+	if (info.source as Enemy).is_alive():
+		attack_target = info.source
+		_target_is_auto = true
+
+
+## Doppelgänger zerfällt in Schatten (Ablauf der Dauer oder getötet); die Runde nimmt ihn aus allen Listen.
+func dissolve() -> void:
+	if clone_owner == null or is_queued_for_deletion():
+		return
+	set_physics_process(false)
+	collision.set_deferred("disabled", true)
+	if world != null:
+		world.vfx.smoke_cloud(global_position + Vector3(0, 0.8, 0), Color(0.18, 0.1, 0.28, 0.85), 0.8, 0.0, 10, 0.8)
+		world.remove_clone(self)
+	queue_free()
 
 
 func _respawn() -> void:

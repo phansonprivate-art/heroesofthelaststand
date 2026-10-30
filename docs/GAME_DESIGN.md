@@ -191,12 +191,13 @@ Die Vorgabe "WASD-Bewegung" und "Fähigkeiten auf Q W E R T Y" belegte W doppelt
 - Sechs Fähigkeitsslots auf **Q W E R D F**. R ist der Ultimate-Slot (ab Level 10). D und F sind die beiden zusätzlichen Slots, die bei LoL den Beschwörerzaubern entsprechen.
 - Kamera mit Y fixierbar oder lösbar; gelöst wird sie am Bildschirmrand verschoben, die Leertaste zentriert
 - WASD entfällt. Die Kamera bleibt nach Norden ausgerichtet.
+- **Doppelgänger steuern (Issue #10):** Linksklick auf eine eigene Einheit wählt sie, **Umschalt + Linksklick** nimmt sie hinzu oder heraus, **Linksklick ziehen** wählt alle eigenen Einheiten im Rahmen. **F1** Held, **F2** nächste Kopie, **F3** alle Kopien, **F4** Held und alle Kopien. Bewegen, Angreifen, Angriffsbewegung und Stopp gehen an alle Gewählten (beim Bewegen fächern sie sich um den Zielpunkt auf). Fähigkeiten und Gegenstände wirkt immer der Held. Unten links steht, was gewählt ist.
 
 Die Belegung steht zentral in `scripts/core/input_setup.gd`. Ein Test stellt sicher, dass keine Taste doppelt belegt ist.
 
 ## Fähigkeiten (umgesetzt)
 
-**Seit 2026-10-27 hat jede Klasse eigene Fähigkeiten** (Wunsch des Spielers): Guardian – Shield Bash, Taunt, Guardian Blessing, Arcane Barrier, Bastion; Shadow – Shadow Strike, Poison Mark, Fan of Knives, Smoke Bomb, Shadow Dance; Arcanist – Fireball, Frost Nova, Chain Lightning, Healing Pulse, Starfall oder Sanctuary. Die Wirkung skaliert stark mit dem Hauptattribut. Alle Fähigkeiten haben 3 Stufen. Die Stufen verbessern nicht nur Schaden, sondern auch Reichweite, Dauer, Kontrolle, Abklingzeit, Stapel oder fügen Spezialeffekte hinzu.
+**Seit 2026-10-27 hat jede Klasse eigene Fähigkeiten** (Wunsch des Spielers): Guardian – Shield Bash, Taunt, Guardian Blessing, Arcane Barrier, Bastion; Shadow – Shadow Strike, Poison Mark, Fan of Knives, Smoke Bomb, Doppelgänger, Shadow Dance; Arcanist – Fireball, Frost Nova, Chain Lightning, Healing Pulse, Starfall oder Sanctuary. Die Wirkung skaliert stark mit dem Hauptattribut. Alle Fähigkeiten haben 3 Stufen. Die Stufen verbessern nicht nur Schaden, sondern auch Reichweite, Dauer, Kontrolle, Abklingzeit, Stapel oder fügen Spezialeffekte hinzu.
 
 | Fähigkeit | Ziel | Wirkung | Stufe 3 |
 |---|---|---|---|
@@ -210,6 +211,7 @@ Die Belegung steht zentral in `scripts/core/input_setup.gd`. Ein Test stellt sic
 | Healing Pulse | Umkreis | Heilung (nur effektiv) | größerer Radius |
 | Guardian Blessing | Umkreis | Schadensreduktion, stapelt nicht | + Angriffstempo |
 | **Bastion** (Ultimate) | selbst + Umkreis | 50–60 % weniger Schaden, Verbündete 20–30 %, kurzer Taunt | |
+| Doppelgänger (Issue #10) | selbst | 1/2/3 Schattenkopien für 12/14/16 s, Abklingzeit 60/57/54 s: einzeln oder als Gruppe steuerbar, kämpfen selbstständig (suchen Gegner in 6 m, wehren sich gegen Angreifer), 40/45/50 % Schaden, erleiden 150 % Schaden, starten mit den aktuellen Leben des Helden (eigener violetter Lebensbalken); übernehmen Stufe, Ausrüstung und das Gift von Poison Mark | Gold und XP ihrer Treffer gehen an den Helden |
 | **Shadow Dance** (Ultimate) | selbst | Tempo, Angriffstempo, Krit | |
 | **Starfall** (Ultimate) | Gebiet | 8–12 Einschläge mit Vorwarnung | |
 | **Sanctuary** (Ultimate, Blessing-Variante) | ganzes Team | Schadensreduktion + Heilung | |

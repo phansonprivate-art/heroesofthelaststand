@@ -203,7 +203,7 @@ func _start_soulfire() -> void:
 func _explode_soulfire(pos: Vector3) -> void:
 	var sf: Dictionary = cfg.get("soulfire", {})
 	var r := float(sf.get("radius", 2.5))
-	_hit_heroes(pos, r, float(sf.get("damage", 70.0)))
+	_hit_heroes(pos, r, float(sf.get("damage", 70.0)), "", float(sf.get("max_hp_pct", 0.0)))
 	if boss.world != null:
 		boss.world.vfx.energy_burst(pos + Vector3(0, 0.8, 0), Color(0.45, 1.0, 0.35), r * 1.4, 0.5)
 		boss.world.vfx.smoke_cloud(pos + Vector3(0, 0.4, 0), Color(0.2, 0.45, 0.15, 0.75), r * 0.5, 0.0, 8, 1.2)
@@ -231,7 +231,7 @@ func _start_deathwave() -> void:
 func _release_deathwave(pos: Vector3) -> void:
 	var dw: Dictionary = cfg.get("deathwave", {})
 	var r := float(dw.get("radius", 9.0))
-	_hit_heroes(pos, r, float(dw.get("damage", 110.0)))
+	_hit_heroes(pos, r, float(dw.get("damage", 110.0)), "", float(dw.get("max_hp_pct", 0.0)))
 	if boss.world != null:
 		boss.world.vfx.shockwave(pos, r, Color(0.7, 0.25, 1.0), 0.6)
 		boss.world.vfx.shockwave(pos, r * 0.7, Color(0.9, 0.6, 1.0), 0.8)
@@ -264,11 +264,19 @@ func _process_pending(delta: float) -> void:
 			"meteor_hit": _meteor_hit(p.pos)
 
 
-func _hit_heroes(pos: Vector3, radius: float, damage: float, element := "") -> Array[Hero]:
+## Schaden im Kreis. max_hp_pct: zusätzlich dieser Anteil der maximalen Leben des Getroffenen als wahrer Schaden –
+## wer einer angekündigten Bossfähigkeit nicht ausweicht, wird auch mit hoher Stufe und Rüstung hart bestraft.
+func _hit_heroes(pos: Vector3, radius: float, damage: float, element := "", max_hp_pct := 0.0) -> Array[Hero]:
 	var hit := _heroes_in(pos, radius)
 	for h in hit:
 		boss.combat.deal_damage(boss, h, damage * boss.damage_multiplier, DamageInfo.Type.MAGIC, false, element)
+		_max_hp_hit(h, max_hp_pct)
 	return hit
+
+
+func _max_hp_hit(h: Hero, pct: float) -> void:
+	if pct > 0.0 and is_instance_valid(h) and h.is_alive():
+		boss.combat.deal_damage(boss, h, h.health.max_hp * pct, DamageInfo.Type.TRUE)
 
 
 func _heroes_in(pos: Vector3, radius: float) -> Array[Hero]:
@@ -369,6 +377,7 @@ func _breath_hit(h: Variant) -> void:
 		return
 	var fb: Dictionary = cfg.frost_breath
 	boss.combat.deal_damage(boss, h, float(fb.get("damage", 90.0)) * boss.damage_multiplier, DamageInfo.Type.MAGIC, false, "ice")
+	_max_hp_hit(h, float(fb.get("max_hp_pct", 0.0)))
 	_chill(h, float(fb.get("slow", 0.6)), float(fb.get("attack_slow", 0.4)), float(fb.get("slow_time", 2.5)))
 
 
@@ -415,7 +424,7 @@ func _process_storms(delta: float) -> void:
 		s.tick -= delta
 		while s.tick <= 0.0 and s.left > 0.0:
 			s.tick += interval
-			for h in _hit_heroes(s.pos, float(bz.get("radius", 4.0)), float(bz.get("damage", 14.0)), "ice"):
+			for h in _hit_heroes(s.pos, float(bz.get("radius", 4.0)), float(bz.get("damage", 14.0)), "ice", float(bz.get("max_hp_pct", 0.0))):
 				_chill(h, float(bz.get("slow", 0.35)), 0.0, interval + 0.6)
 				if h.status.has(StatusEffects.STUN):
 					continue   # schon eingefroren
@@ -519,14 +528,14 @@ func _launch_fireball(target_pos: Vector3, dir: Vector3) -> void:
 func _fireball_hit(pos: Vector3) -> void:
 	var fb: Dictionary = cfg.fireball
 	var r := float(fb.get("radius", 2.6))
-	_fire_hit(pos, r, float(fb.get("damage", 110.0)), float(fb.get("burn_dps", 18.0)), float(fb.get("burn_time", 3.0)))
+	_fire_hit(pos, r, float(fb.get("damage", 110.0)), float(fb.get("burn_dps", 18.0)), float(fb.get("burn_time", 3.0)), float(fb.get("max_hp_pct", 0.0)))
 	if boss.world != null:
 		boss.world.camera_rig.shake(0.3)
 
 
 ## Feuer-Einschlag: Schaden im Kreis, Verbrennung, Explosion und Brandfleck
-func _fire_hit(pos: Vector3, radius: float, damage: float, burn_dps: float, burn_time: float) -> void:
-	for h in _hit_heroes(pos, radius, damage, "fire"):
+func _fire_hit(pos: Vector3, radius: float, damage: float, burn_dps: float, burn_time: float, max_hp_pct := 0.0) -> void:
+	for h in _hit_heroes(pos, radius, damage, "fire", max_hp_pct):
 		if burn_dps > 0.0:
 			h.status.apply(StatusEffects.BURN, burn_time, burn_dps * boss.damage_multiplier, boss)
 	if boss.world != null:
@@ -568,7 +577,7 @@ func _start_meteors() -> void:
 
 func _meteor_hit(pos: Vector3) -> void:
 	var ms: Dictionary = cfg.meteor_shower
-	_fire_hit(pos, float(ms.get("radius", 1.8)), float(ms.get("damage", 70.0)), float(ms.get("burn_dps", 12.0)), float(ms.get("burn_time", 3.0)))
+	_fire_hit(pos, float(ms.get("radius", 1.8)), float(ms.get("damage", 70.0)), float(ms.get("burn_dps", 12.0)), float(ms.get("burn_time", 3.0)), float(ms.get("max_hp_pct", 0.0)))
 	if boss.world != null:
 		boss.world.camera_rig.shake(0.15)
 

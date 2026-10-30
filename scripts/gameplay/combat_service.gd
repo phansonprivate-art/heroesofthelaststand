@@ -35,6 +35,9 @@ func deal_damage(source: Node, target: Node3D, amount: float, type := DamageInfo
 	info.element = element
 	if element != "" and target.has_method("element_multiplier"):
 		info.amount *= float(target.call("element_multiplier", element))
+	var taken: Variant = target.get("damage_taken_multiplier")   # Doppelgänger erleiden mehr Schaden
+	if taken != null:
+		info.amount *= float(taken)
 	# Schadensreduktion aus Zuständen (Segen, Bastion, Runen) – gedeckelt in StatusEffects
 	if status != null and type != DamageInfo.Type.TRUE and status.damage_reduction() > 0.0:
 		var before := info.amount

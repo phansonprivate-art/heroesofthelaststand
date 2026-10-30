@@ -151,17 +151,33 @@ def blade_weights(ctx):
 
 def held_weights(ctx, cfg):
     """Waffen (Schwert, Schild) über Bereiche ganz an eine Hand hängen, damit sie sich nicht mit Beinen oder Rumpf
-    verbiegen. Wird nach den Wärmegewichten, vor dem Wechsel in die T-Pose aufgerufen."""
+    verbiegen. Wird nach den Wärmegewichten, vor dem Wechsel in die T-Pose aufgerufen.
+    Jedes zusammenhängende Netzteil, das zu einem guten Teil im Bereich liegt, kommt ganz an die Hand – sonst folgen
+    Griff oder Klingenende, die außerhalb des Bereichs liegen, dem Unterarm und die Waffe knickt. Teile, die mehr als
+    ein Viertel der Figur ausmachen (Körper), werden nie ganz übernommen; dort zählt nur der Bereich."""
     body = ctx["body"]
+    bm = bmesh.new()
+    bm.from_mesh(body.data)
+    parts = [[v.index for v in p] for p in h.islands(bm)]
+    bm.free()
+    total = len(body.data.vertices)
     for rule in cfg["held"]:
         lo, hi = V(rule["box"][0]), V(rule["box"][1])
         group = body.vertex_groups.get(rule["bone"])
-        idx = [v.index for v in body.data.vertices if all(lo[i] <= v.co[i] <= hi[i] for i in range(3))]
+        inside = {v.index for v in body.data.vertices if all(lo[i] <= v.co[i] <= hi[i] for i in range(3))}
+        idx = set(inside)
+        whole = 0
+        for p in parts:
+            hits = sum(1 for i in p if i in inside)
+            if hits and len(p) < total * 0.25 and hits >= len(p) * float(rule.get("part_share", 0.3)):
+                idx.update(p)
+                whole += 1
+        idx = sorted(idx)
         for i in idx:
             for g in list(body.data.vertices[i].groups):
                 body.vertex_groups[g.group].remove([i])
         group.add(idx, 1.0, "REPLACE")
-        log("%s: %d Punkte fest an der Hand" % (rule["bone"], len(idx)))
+        log("%s: %d Punkte fest an der Hand (%d Teile ganz)" % (rule["bone"], len(idx), whole))
 
 
 # --- Vorschau ---------------------------------------------------------------------------------------

@@ -870,3 +870,28 @@ Wunsch des Spielers: „tausche den Level-10-Hexer-Boss mit dem neuen Stil aus�
 - **Showcase:** `--enemy=morvath` mit eigenen Bildzeiten; Phase 2 wird für das Seelenfeuer erzwungen.
 - **Geprüft:** 134 Tests bestanden; Bildfolge aus einer echten Runde (Auftritt mit Stabstoß, Beschwörungskreise, Skelette, Seelenfeuer).
 - **Nicht geprüft:** Phase 3 (Todeswelle, Raserei) und der Tod im Spiel nicht angesehen; das alte Modell `Morvath.glb` bleibt als Datei liegen.
+- **Nachtrag Schwert** (Spieler: „Schwert ist gebogen“): Nur der Teil des Schwerts im Bereich hing an der Hand, Griff und oberes Klingenende folgten dem Unterarm. `held_weights` hängt jetzt jedes zusammenhängende Netzteil, das zu ≥ 30 % im Bereich liegt, ganz an die Hand (Schwert 154 Punkte, Schild 189). Geprüft: gerade Klinge in Laufen, Hieb, Stehen (Blender) und Shield Bash im Spiel.
+
+## 2026-10-30 – Doppelgänger der Assassine (Issue #10)
+
+Vorgabe: Issue #10 (Assassinen-Skill Doppelgänger: Stufe 1/2/3 = 1/2/3 Kopien, einzeln wähl- und steuerbar, weniger Schaden, mehr erlittener Schaden, übernehmen passive Effekte wie Gift, verschwinden nach Dauer oder Tod).
+- **Fähigkeit** `shadow_clones` (normal, Shadow): 1/2/3 Kopien für 12/14/16 s, Schaden 40/45/50 %, erlittener Schaden 150 %, halbe Leben; Abklingzeit 30/28/26 s, 80–100 Mana, 320/450/650 Gold. Keine Attribut-Skalierung auf die Anteile (`scaled_keys: []`).
+- **Kopien** sind `Hero`-Instanzen mit `clone_owner`: gleiche Figur, Stufe, gekaufte Punkte und Ausrüstungswerte; kämpfen selbstständig (Auto-Angriff); schattenhaft violett eingefärbt, violetter Ring; zerfallen in Rauch nach Ablauf oder Tod (`dissolve`). Gegner greifen sie an (`spawner.heroes`), sie zählen aber nicht als Helden der Runde. Gold/XP ihrer Treffer gehen über die gleiche Spieler-ID an den Helden.
+- **Gift:** Hat der Held Poison Mark gelernt, vergiftet jeder Treffer einer Kopie mit dessen Werten (× Schadensanteil).
+- **Steuerung:** Linksklick auf eigene Einheit wählt sie, F1 Held, F2 nächste Kopie; Befehle gehen an die gewählte Einheit, Fähigkeiten immer an den Helden. `CombatService` beachtet `damage_taken_multiplier`.
+- **Geprüft:** 139 Tests bestanden, davon 5 neue in `tests/test_clones.gd` (Daten, Anzahl und Werte, selbstständiger Angriff mit Gift, Auswahl per F2/F1 und unabhängige Bewegung, Ablauf und Tod inkl. Rücksprung der Auswahl); Bild aus dem Fähigkeiten-Showcase (drei Kopien).
+- **Nicht geprüft:** Auswahl per Mausklick im echten Spiel (nur über die Tastenbefehle im Test); keine Anzeige im HUD, welche Einheit gewählt ist, außer dem Ring; nicht gegengespielt.
+- **Nachträge zu den Doppelgängern (Rückmeldungen des Spielers):**
+  - „Möglichkeit, die Doppelgänger alle zu markieren oder gruppieren“: Mehrfachauswahl in `HeroInput` – Auswahlrahmen (Linksklick ziehen), Umschalt + Linksklick, F3 alle Kopien, F4 alles; Befehle an alle Gewählten, beim Bewegen im Kreis um den Zielpunkt; Anzeige „Auswahl: …“ über der Heldenleiste (zuerst überdeckte sie die Leiste, verschoben).
+  - „Lebensbalken würde ich gerne sehen“: violetter Lebensbalken über jeder Kopie (Shader der Gegner-Balken).
+  - „Cooldown deutlich höher … vielleicht 1 min“: 60/57/54 s.
+  - „Doppelgänger sollen genauso viel Leben haben wie ich momentan“: gleiches Maximum, Startleben = aktuelle Leben des Helden beim Wirken.
+  - „Doppelgänger reagieren nicht, wenn sie angegriffen werden“: Kopien suchen Gegner in 6 m (Held: Reichweite + 1,2 m) und nehmen ihren Angreifer als Ziel, solange kein Befehl des Spielers läuft.
+  - **Fehler behoben:** „KI greift nicht an; sobald die Doppelgänger verschwinden, machen sie die Quest nicht weiter“ – Gegner, deren Ziel eine zerfallene Kopie war, hielten eine gelöschte Referenz und blieben stehen. Jetzt vergessen sie das Ziel (`Enemy.forget` beim Zerfall, zusätzlich Prüfung auf gelöschte Ziele je Takt) und laufen zum Kern weiter.
+  - Geprüft: 143 Tests bestanden (neu: Gruppenauswahl und Balken, aktuelle Leben, Gegenwehr gegen Fernkämpfer, Gegner laufen nach dem Zerfall weiter); Bild im Spiel mit drei gewählten Kopien, Balken und Anzeige (`tools/clone_shot.gd`). Nicht geprüft: Auswahlrahmen und Umschalt-Klick von Hand mit der Maus.
+
+## 2026-10-30 – Bossfähigkeiten bestrafen härter
+
+Wunsch des Spielers: „Bei den Bosskämpfen muss viel härter bestraft werden, wenn man den Skillshots nicht ausweichen kann.“
+- Angekündigte Fähigkeiten von Endboss und Mini-Bossen machen mehr festen Schaden und zusätzlich einen Anteil der maximalen Leben als wahren Schaden (`max_hp_pct` in den Bossdaten; `BossBrain._hit_heroes`/`_max_hp_hit`, Bodenschlag in `Enemy._fire_ability`). Werte in BALANCING.md; Elite-Gegner unverändert.
+- Geprüft: 144 Tests bestanden, neu `tests/test_boss_punish.gd` (Guardian Stufe 10: Todeswelle ≥ 45 %, Seelenfeuer ≥ 25 %, Feuerball ≥ 30 % der Leben). Nicht gegengespielt; zwei Seelenfeuer plus Todeswelle können einen Helden jetzt fast sofort töten – gewollt, aber im Spiel zu prüfen.

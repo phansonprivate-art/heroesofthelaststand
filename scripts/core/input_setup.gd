@@ -25,6 +25,10 @@ const KEYS := {
 	"camera_center": [KEY_SPACE],
 	"camera_lock": [KEY_Y],
 	"call_wave": [KEY_N],
+	"select_hero": [KEY_F1],        ## Steuerung zurück an den Helden (nach Auswahl eines Doppelgängers)
+	"select_next_unit": [KEY_F2],   ## nächsten eigenen Doppelgänger wählen
+	"select_all_clones": [KEY_F3],  ## alle eigenen Doppelgänger wählen (Gruppe)
+	"select_all_units": [KEY_F4],   ## Held und alle Doppelgänger wählen
 }
 
 const MOUSE := {

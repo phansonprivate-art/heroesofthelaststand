@@ -40,6 +40,7 @@ static func cast(id: String, level: int, hero: Hero, target: Node3D, point: Vect
 		"poison_mark": _poison_mark(level, hero, target as Enemy, world)
 		"fan_of_knives": _fan_of_knives(level, hero, world)
 		"smoke_bomb": _smoke_bomb(level, hero, point, world)
+		"shadow_clones": _shadow_clones(level, hero, world)
 		"fireball": _fireball(level, hero, point, world)
 		"frost_nova": _frost_nova(level, hero, world)
 		"chain_lightning": _chain_lightning(level, hero, target as Enemy, world)
@@ -212,6 +213,19 @@ static func _smoke_bomb(level: int, hero: Hero, point: Vector3, world) -> void:
 	world.vfx.shockwave(point, radius, Color(0.75, 0.78, 0.85), 0.45)
 	world.vfx.smoke_cloud(point + Vector3(0, 0.5, 0), Color(0.58, 0.6, 0.66, 0.95), radius, duration, 44, 0.35)
 	world.vfx.disc(point, radius, Color(0.4, 0.42, 0.5, 0.35), duration)
+
+
+## Doppelgänger (Issue #10): Schattenkopien im Halbkreis um den Helden; einzeln wähl- und steuerbar (HeroInput).
+static func _shadow_clones(level: int, hero: Hero, world) -> void:
+	var count := int(v("shadow_clones", level, "count"))
+	var back := hero.global_basis.z   # hinter und neben dem Helden, damit sie nicht in ihm stehen
+	for i in count:
+		var a := (float(i) - (count - 1) * 0.5) * 1.1
+		var pos: Vector3 = hero.global_position + (back.rotated(Vector3.UP, a) * 1.6)
+		pos.y = 0.0
+		world.spawn_clone(hero, pos, v("shadow_clones", level, "duration"), v("shadow_clones", level, "damage_share"),
+			v("shadow_clones", level, "damage_taken"), v("shadow_clones", level, "hp_share"))
+	world.vfx.shockwave(hero.global_position, 2.5, Color(0.55, 0.3, 0.9), 0.4)
 
 
 # --- Arcanist ------------------------------------------------------------------

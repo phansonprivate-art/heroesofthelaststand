@@ -141,6 +141,12 @@ func _physics_process(delta: float) -> void:
 				state = State.ADVANCE
 			return
 
+	# Ziel gelöscht (z. B. Doppelgänger zerfallen): vergessen und zum Kern weiter, statt stehen zu bleiben
+	if target != null and not is_instance_valid(target):
+		target = core
+		_windup_left = -1.0
+	if _threat_target != null and not is_instance_valid(_threat_target):
+		_threat_target = null
 	_attack_cooldown -= delta
 	_threat_left -= delta
 	_stagger_cooldown -= delta
@@ -415,6 +421,8 @@ func _fire_ability() -> void:
 		if _flat(h.global_position - global_position).length() > r:
 			continue
 		combat.deal_damage(self, h, float(ab.get("damage", 40.0)) * damage_multiplier, DamageInfo.Type.PHYSICAL)
+		if float(ab.get("max_hp_pct", 0.0)) > 0.0 and h.is_alive():   # Mini-Boss: Anteil der maximalen Leben als wahrer Schaden
+			combat.deal_damage(self, h, h.health.max_hp * float(ab.max_hp_pct), DamageInfo.Type.TRUE)
 		if float(ab.get("slow", 0.0)) > 0.0:
 			h.status.apply(StatusEffects.SLOW, float(ab.get("slow_time", 2.0)), float(ab.get("slow", 0.0)), self)
 	if world != null:
@@ -440,6 +448,15 @@ func _on_damaged(info: DamageInfo) -> void:
 		# sonst würde der Gegner den Angreifer sofort vergessen und zum Kern weiterlaufen.
 		var dist := _flat((info.source as Hero).global_position - global_position).length()
 		_threat_leash = maxf(float(data.aggro_leash), dist + THREAT_LEASH_MARGIN)
+
+
+## Eine Einheit verschwindet (Doppelgänger zerfällt): nicht mehr verfolgen, zurück zum Kern bzw. zum nächsten Ziel.
+func forget(unit: Node) -> void:
+	if target == unit:
+		target = core
+		_windup_left = -1.0
+	if _threat_target == unit:
+		_threat_target = null
 
 
 ## Sofortiger Zielwechsel bei Taunt (sonst erst beim nächsten Frame) und Abbruch eines laufenden Schlags auf ein anderes Ziel.

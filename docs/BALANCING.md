@@ -129,6 +129,20 @@ Werte in `data/balance/game.json` (`rewards`, `contribution`).
 
 **Kalibrierung:** Der Test `test_rewards.gd::test_roles_earn_comparable_gold` simuliert eine 4-Spieler-Welle (24 Knochenläufer, 4 Grabkolosse) mit typischem Verhalten je Rolle. Ausgangswerte ergaben Tank 725 · Support 486 · Magier 540 · Schurke 435 Gold (67 % Abstand). Nach Anpassung der Gewichte und Aufnahme von Schaden in den Rollenbonus: **Tank 428 · Support 444 · Magier 436 · Schurke 398** – alle im Zielkorridor 300–450, Abstand 11,6 % (Vorgabe ≤ 15 %). Die Simulation beruht auf Annahmen über typisches Verhalten; echte Werte liefert die Telemetrie.
 
+**Angekündigte Bossfähigkeiten bestrafen hart (2026-10-30, Spieler: „bei den Bosskämpfen muss viel härter bestraft werden, wenn man den Skillshots nicht ausweichen kann“):** Jeder Treffer macht festen Schaden **plus einen Anteil der maximalen Leben als wahren Schaden** (ignoriert Rüstung und Magieresistenz, wirkt auf jeder Stufe gleich).
+
+| Fähigkeit | Schaden vorher | jetzt | + Anteil max. Leben |
+|---|---|---|---|
+| Morvath Seelenfeuer | 70 | 120 | 20 % |
+| Morvath Todeswelle | 120 | 200 | 35 % |
+| Eisdrache Odem | 90 | 150 | 25 % |
+| Eisdrache Schneesturm (je 0,5 s) | 14 | 25 | 2 % (bis 20 % in 5 s, dazu Einfrieren) |
+| Feuerdrache Feuerball | 110 | 180 | 25 % (plus Brand) |
+| Feuerdrache Meteor (je Einschlag) | 70 | 110 | 15 % |
+| Knochenkoloss Bodenschlag | 90 | 150 | 20 % |
+
+Geprüft (Test `test_boss_punish.gd`, Guardian Stufe 10): Todeswelle ≥ 45 %, Seelenfeuer ≥ 25 %, Feuerball ≥ 30 % der Leben. Elite-Gegner (Grabritter, Hexer) unverändert. Nicht gegengespielt.
+
 **Feuerdrache** (`fire_drake`, Mini-Boss, Welle 9 Pfad 1 sofort; ersetzt dort den Knochenkoloss): Kontrollresistenz 60 %. Elemente Feuer ×0, Eis ×1,5, Gift ×1,5. Feuerpest 10 Schaden/s für 3 s. Schwerer Feuerball 110 Schaden, 2,6 m, Brand 18/s für 3 s, Abklingzeit 8/7/6 s, erster nach 4 s. Meteorschauer ab Phase 2: 6 Meteore à 70 Schaden (1,8 m), Brand 12/s, Abklingzeit 14/14/10 s. Drachengebrüll alle 18 s: −20 Rüstung/MR für Helden (5 s), +30 % Schaden für Gegner (6 s). Alle Werte Schätzwerte, nicht gegengespielt.
 
 **Eisdrache** (`ice_drake`, Mini-Boss, Welle 8 Pfad 2, 10 s nach Wellenstart; ersetzt dort einen Grabritter, Vorbereitung 45 s statt 40 s): Kontrollresistenz 60 %, Körperradius 1,5 m. Elemente Eis ×0, Feuer ×1,5, Gift ×1,5. Unterkühlung 20 %/20 % für 2 s. Odem 90 Schaden, Abklingzeit 9/8/6,5 s, erster nach 4 s. Schneesturm 14 Schaden je 0,5 s, Abklingzeit 12/12/9 s, Einfrieren bei 6 Stapeln für 1,5 s. Schrei alle 18 s, erster nach 8 s, +25 Rüstung/MR für Gegner. Phasen bei 60 % und 30 %. Alle Werte Schätzwerte, nicht gegengespielt.

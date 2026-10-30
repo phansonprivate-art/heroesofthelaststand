@@ -17,6 +17,12 @@
     "hp_per_second": 0.01,
     "mana_per_second": 0.01
   },
+  "map_structures": {
+    "_comment": "Bauwerke der Zitadellenkarte. tower/gate: Leben, Rüstung, Schuss (magisch) auf den nächsten Gegner in Reichweite; Gegner greifen sie mit structure_damage an, wenn sie in ihren aggro_radius kommen. Das Torhaus hält Gegner auf, bis es fällt. shrine: einmaliger Schub (Anteil von Leben/Mana), danach cooldown Sekunden Ladezeit.",
+    "tower": { "name": "Wachturm", "hp": 1800, "armor": 4.0, "damage": 34.0, "attack_interval": 1.1, "attack_range": 9.0, "projectile_speed": 22.0, "color": "#ffa040" },
+    "gate": { "name": "Torhaus", "hp": 3500, "armor": 6.0, "damage": 20.0, "attack_interval": 1.0, "attack_range": 10.0, "projectile_speed": 24.0, "color": "#ffd27a" },
+    "shrine": { "name": "Schrein", "radius": 2.2, "hp_ratio": 0.2, "mana_ratio": 0.2, "cooldown": 90.0 }
+  },
   "waves": {
     "default_prepare_seconds": 12.0,
     "enemy_hp_growth_per_wave": 0.08,

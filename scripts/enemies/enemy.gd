@@ -57,6 +57,7 @@ var _state_left := 0.0
 var _corpse_seconds := 2.5
 var _ability_left := 0.0        ## Abklingzeit der Zusatzfähigkeit
 var _ability_windup := -1.0     ## >= 0: Fähigkeit wird gerade angekündigt (Warnkreis), bei 0 löst sie aus
+var _melee_swing := false       ## laufender Schlag ist ein Nahkampfhieb eines Hybrid-Gegners
 
 
 func setup(enemy_data: Dictionary, path: PackedVector3Array, p_core: DefenseCore, p_combat: CombatService, p_spawner: EnemySpawner, hp_multiplier: float, p_damage_multiplier := 1.0) -> void:
@@ -67,7 +68,7 @@ func setup(enemy_data: Dictionary, path: PackedVector3Array, p_core: DefenseCore
 	combat = p_combat
 	spawner = p_spawner
 	target = core
-	body_radius = 0.45 * data.model_scale
+	body_radius = data.body_radius if float(data.get("body_radius", 0.0)) > 0.0 else 0.45 * data.model_scale
 	damage_multiplier = p_damage_multiplier
 	status.cc_resist = data.cc_resist
 	status.max_slow = float(GameData.attribute_rules.get("caps", {}).get("slow", 0.7))
@@ -75,7 +76,7 @@ func setup(enemy_data: Dictionary, path: PackedVector3Array, p_core: DefenseCore
 	# Gift: Schaden über den CombatService, damit er als Beteiligung des Verursachers zählt; ignoriert Rüstung
 	status.dot_handler = func(src: Node, amount: float) -> void:
 		if is_alive():
-			combat.deal_damage(src, self, amount, DamageInfo.Type.TRUE)
+			combat.deal_damage(src, self, amount, DamageInfo.Type.TRUE, false, "poison")
 	_threat_seconds = float(GameData.setting("enemies", "threat_seconds", 4.0))
 	_corpse_seconds = float(GameData.setting("enemies", "corpse_seconds", 2.5))
 	health.setup(data.max_hp * hp_multiplier)
@@ -83,7 +84,8 @@ func setup(enemy_data: Dictionary, path: PackedVector3Array, p_core: DefenseCore
 	health.died.connect(_on_died)
 	health.changed.connect(_on_health_changed)
 	visual.setup(data.model, [], data.model_scale, data.anims, Color(0.75, 0.7, 0.6))
-	health_bar.position.y = 2.2 * data.model_scale + 0.3
+	var bar_height := float(data.get("bar_height", 0.0))
+	health_bar.position.y = bar_height if bar_height > 0.0 else 2.2 * data.model_scale + 0.3
 	health_bar.visible = false
 	_attack_cooldown = randf_range(0.0, 0.4)
 	_ability_left = float(data.ability.get("first_delay", 3.0)) if not data.ability.is_empty() else 0.0
@@ -102,12 +104,22 @@ func is_alive() -> bool:
 	return state != State.DEAD
 
 
+## Rüstung und Magieresistenz inkl. Verstärkung durch einen Boss (Arktischer Schrei: ARMOR_BONUS gilt für beide)
 func get_armor() -> float:
-	return data.armor
+	return data.armor + status.magnitude(StatusEffects.ARMOR_BONUS)
 
 
 func get_magic_resist() -> float:
-	return data.magic_resist
+	return data.magic_resist + status.magnitude(StatusEffects.ARMOR_BONUS)
+
+
+## Schadensfaktor gegen ein Element (CombatService): 0 = immun, 1.5 = anfällig. Fehlt der Eintrag, gilt 1.
+func element_multiplier(element: String) -> float:
+	return float(data.get("elements", {}).get(element, 1.0))
+
+
+func is_immune(element: String) -> bool:
+	return element_multiplier(element) <= 0.0
 
 
 func _physics_process(delta: float) -> void:
@@ -198,7 +210,8 @@ func _physics_process(delta: float) -> void:
 ##   0. Taunt: der verspottende Held, solange der Effekt läuft (Bosse: verkürzt über cc_resist)
 ##   1. Held, der mich angegriffen hat (für threat_seconds, bis Trefferdistanz + 4 m bzw. aggro_leash)
 ##   2. Held, den ich gerade verfolge oder der in meinen aggro_radius kommt (bis er den aggro_leash verlässt)
-##   3. der Kern
+##   3. Bauwerk der Karte (Wachturm, Torhaus) in meinem aggro_radius – ich bleibe daran, bis es fällt oder ein Held kommt
+##   4. der Kern
 ## (Taunt kommt in Phase 3 mit höchster Priorität davor.)
 func _choose_target(delta: float) -> void:
 	if status.has(StatusEffects.TAUNT):
@@ -220,6 +233,12 @@ func _choose_target(delta: float) -> void:
 		if hero != null:
 			target = hero
 			return
+		var building := spawner.nearest_structure(global_position, data.aggro_radius)
+		if building != null:
+			target = building
+			return
+	if target is MapStructure and (target as MapStructure).is_alive():
+		return
 	target = core if core != null and core.is_alive() else null
 
 
@@ -244,6 +263,8 @@ func _distance_to_target() -> float:
 	var d := _flat(target.global_position - global_position).length()
 	if target == core:
 		return d - core.radius
+	if target is MapStructure:
+		return (target as MapStructure).surface_distance(global_position)
 	return d - 0.5
 
 
@@ -265,9 +286,18 @@ func _start_attack() -> void:
 	var interval: float = data.attack_interval / haste
 	_attack_cooldown = interval
 	_windup_left = data.attack_hit_delay / haste
-	var anim_len := visual.animation_length("attack")
+	_melee_swing = _melee_in_reach()
+	var logical := "melee" if _melee_swing else "attack"
+	var anim_len := visual.animation_length(logical)
 	var speed := maxf(1.0, anim_len / maxf(interval, 0.1)) if anim_len > 0.0 else 1.0
-	visual.play("attack", speed, true)
+	visual.play(logical, speed, true)
+
+
+## Hybrid (data.melee): Steht ein Held nah am Körper, schlägt der Fernkämpfer zu statt zu schießen (Eisdrache).
+func _melee_in_reach() -> bool:
+	if data.get("melee", {}).is_empty() or not (target is Hero):
+		return false
+	return _flat(target.global_position - global_position).length() <= body_radius + float(data.melee.get("range", 2.0))
 
 
 func _update_windup(delta: float) -> void:
@@ -281,15 +311,18 @@ func _update_windup(delta: float) -> void:
 		return
 	if _distance_to_target() > _attack_reach() + 0.8:
 		return
-	var amount: float = (data.structure_damage if target == core else data.damage) * damage_multiplier
-	if data.projectile.is_empty():
+	var amount: float = (data.structure_damage if target == core or target is MapStructure else data.damage) * damage_multiplier
+	if _melee_swing:
+		amount = float(data.melee.get("damage", data.damage)) * damage_multiplier
+	if data.projectile.is_empty() or _melee_swing:
 		combat.deal_damage(self, target, amount, DamageInfo.Type.PHYSICAL)
+		_apply_on_hit(target)
 		return
 	# Fernkampf: Geschoss fliegt zum Ziel, Schaden beim Einschlag (hit_target)
 	var p := Projectile.new()
 	get_parent().add_child(p)
 	p.launch(self, target, combat, amount, DamageInfo.Type.MAGIC, false, {},
-		global_position + Vector3(0, 1.5 * data.model_scale, 0) - global_basis.z * 0.5,
+		global_position + Vector3(0, 1.5 * data.model_scale, 0) - global_basis.z * float(data.projectile.get("forward", 0.5)),
 		float(data.projectile.get("speed", 14.0)), Color.html(String(data.projectile.get("color", "#7dff9a"))))
 
 
@@ -297,6 +330,20 @@ func _update_windup(delta: float) -> void:
 func hit_target(t: Node3D, amount: float, _crit: bool) -> void:
 	if is_instance_valid(t):
 		combat.deal_damage(self, t, amount, DamageInfo.Type.MAGIC)
+		_apply_on_hit(t)
+
+
+## Passiver Treffereffekt (data.on_hit), z. B. Unterkühlung des Eisdrachen: bremst Lauf- und Angriffstempo des Helden.
+func _apply_on_hit(t: Node3D) -> void:
+	var oh: Dictionary = data.get("on_hit", {})
+	if oh.is_empty() or not (t is Hero) or not is_instance_valid(t) or not (t as Hero).is_alive():
+		return
+	var hero := t as Hero
+	var duration := float(oh.get("duration", 2.0))
+	if float(oh.get("slow", 0.0)) > 0.0:
+		hero.status.apply(StatusEffects.SLOW, duration, float(oh.slow), self)
+	if float(oh.get("attack_slow", 0.0)) > 0.0:
+		hero.status.apply(StatusEffects.CHILL, duration, float(oh.attack_slow), self)
 
 
 # --- Zusatzfähigkeit (Elite, Mini-Boss) ---------------------------------------
@@ -362,7 +409,7 @@ func _on_damaged(info: DamageInfo) -> void:
 	visual.flash()
 	# Spürbare Treffer (nicht Gift-Ticks): kurzes Zusammenzucken. Ein laufender Schlag wird nicht abgebrochen.
 	var noticeable := info.type != DamageInfo.Type.TRUE and info.final_amount >= health.max_hp * STAGGER_MIN_RATIO
-	if state != State.SPAWNING and is_alive() and _windup_left < 0.0 and noticeable and _stagger_cooldown <= 0.0:
+	if state != State.SPAWNING and is_alive() and _windup_left < 0.0 and _ability_windup < 0.0 and noticeable and _stagger_cooldown <= 0.0:   # angekündigter Bodenschlag wird nicht weggezuckt
 		_stagger_left = STAGGER_SECONDS
 		_stagger_cooldown = STAGGER_COOLDOWN
 		visual.play("hit", 1.8, true)

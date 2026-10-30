@@ -10,6 +10,7 @@ const WAVES_PATH := "res://data/waves/waves.json"
 const ATTRIBUTES_PATH := "res://data/balance/attributes.json"
 const SKILLS_PATH := "res://data/skills/skills.json"
 const ITEMS_PATH := "res://data/items/items.json"
+const MAPS_PATH := "res://data/maps/maps.json"
 const SKILL_TARGETS := ["enemy", "ally", "self", "point"]
 const ITEM_SLOTS := ["weapon", "armor", "helmet", "boots", "ring", "amulet", "consumable"]
 const MAX_SKILL_LEVEL := 3
@@ -27,6 +28,8 @@ var heroes: Dictionary = {}            ## id -> Definition
 var hero_order: Array[String] = []
 var enemies: Dictionary = {}           ## id -> Definition
 var waves: Array[Dictionary] = []
+var maps: Dictionary = {}              ## id -> Definition (Szene, Kern, Brunnen)
+var map_order: Array[String] = []
 var errors: PackedStringArray = []
 
 
@@ -95,6 +98,14 @@ func reload() -> void:
 		if not wave.is_empty():
 			waves.append(wave)
 
+	maps.clear()
+	map_order.clear()
+	for mp in _load_json(MAPS_PATH).get("maps", []):
+		var def := _normalize_map(mp)
+		if not def.is_empty():
+			maps[def.id] = def
+			map_order.append(def.id)
+
 	for msg in errors:
 		push_error("[GameData] " + msg)
 
@@ -118,6 +129,11 @@ func skill_value(id: String, level: int, key: String, fallback: Variant = 0.0) -
 		return fallback
 	var levels: Array = def.levels
 	return levels[clampi(level, 1, levels.size()) - 1].get(key, fallback)
+
+
+## Kartendefinition; unbekannte Karte -> erste Karte der Liste (die Arena).
+func map(id: String) -> Dictionary:
+	return maps.get(id, maps.get(map_order[0], {}) if not map_order.is_empty() else {})
 
 
 func item(id: String) -> Dictionary:
@@ -341,10 +357,38 @@ func _normalize_enemy(src: Dictionary) -> Dictionary:
 		"projectile": src.get("projectile", {}),   ## Fernkampf: {speed, color}; leer = Nahkampf
 		"ability": src.get("ability", {}),         ## Zusatzfähigkeit (Elite, Mini-Boss), z. B. {type: "stomp", ...}
 		"boss": src.get("boss", {}),               ## Boss-Phasen und -Fähigkeiten (siehe BossBrain)
+		"melee": src.get("melee", {}),             ## Hybrid: {range, damage} – Fernkämpfer schlägt zu, wenn ein Held so nah ist
+		"on_hit": src.get("on_hit", {}),           ## jeder Treffer: {slow, attack_slow, duration} (Unterkühlung)
+		"elements": src.get("elements", {}),       ## Schadensfaktor je Element, z. B. {ice: 0, fire: 1.5}; fehlt = 1
+		"body_radius": float(src.get("body_radius", 0.0)),   ## 0 = aus model_scale; große Körper (Drache) größer
+		"bar_height": float(src.get("bar_height", 0.0)),     ## Höhe der Lebensleiste; 0 = aus model_scale
 	}
 
 
 ## Pflichtzahl lesen; fehlende oder zu kleine Werte werden gemeldet und auf das Minimum gesetzt.
+func _normalize_map(src: Dictionary) -> Dictionary:
+	var id := String(src.get("id", ""))
+	var ctx := "Karte '%s'" % id
+	if id == "":
+		errors.append("Karte ohne id")
+		return {}
+	var scene := String(src.get("scene", ""))
+	if not ResourceLoader.exists(scene):
+		errors.append("%s: Szene fehlt (%s)" % [ctx, scene])
+		return {}
+	var def := {"id": id, "name": String(src.get("name", id)), "description": String(src.get("description", "")), "scene": scene,
+		"layout": String(src.get("layout", ""))}
+	for key in ["core", "fountain"]:
+		var v: Array = src.get(key, [])
+		if v.size() != 3:
+			errors.append("%s: %s braucht [x, y, z]" % [ctx, key])
+			return {}
+		def[key] = Vector3(float(v[0]), float(v[1]), float(v[2]))
+	if src.has("fountain_radius"):
+		def.fountain_radius = float(src.fountain_radius)
+	return def
+
+
 func _num(src: Dictionary, key: String, ctx: String, minimum: float) -> float:
 	if not src.has(key):
 		errors.append("%s: Feld '%s' fehlt" % [ctx, key])

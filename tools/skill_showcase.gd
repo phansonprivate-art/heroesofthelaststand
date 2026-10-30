@@ -5,6 +5,8 @@ extends Node
 ## Start per Doppelklick auf tools/skill_showcase.cmd oder im Editor (tools/skill_showcase.tscn, F6).
 ## Direkt bei einer Fähigkeit starten:  godot --path . res://tools/skill_showcase.tscn -- --skill=<id>
 ## Mit den alten KayKit-Modellen:        ... -- --original
+## Stufe wählen:                         ... -- --level=3
+## Bilder ohne Bedienung (nicht headless): ... -- --shots=<ordner> --times=0.2,0.5,1.0  (Spielsekunden nach dem Wirken)
 
 const MATCH_SCENE := "res://scenes/main/match.tscn"
 const CUSTOM_MODELS := {
@@ -43,6 +45,8 @@ var _yaw := 0.0
 var _pitch := 0.0
 var _distance := 0.0
 var _dragging := false
+var _shots_dir := ""
+var _shot_times: Array[float] = [0.15, 0.35, 0.55, 0.8, 1.2, 1.8, 2.4, 3.0]
 
 
 func _ready() -> void:
@@ -56,6 +60,14 @@ func _ready() -> void:
 			_use_custom = false
 		elif arg.begins_with("--skill="):
 			_select_skill(arg.trim_prefix("--skill="))
+		elif arg.begins_with("--level="):
+			_level = clampi(int(arg.trim_prefix("--level=")), 1, 3)
+		elif arg.begins_with("--shots="):
+			_shots_dir = arg.trim_prefix("--shots=")
+		elif arg.begins_with("--times="):
+			_shot_times.clear()
+			for part in arg.trim_prefix("--times=").split(","):
+				_shot_times.append(float(part))
 	_camera = Camera3D.new()
 	_camera.fov = 45.0
 	add_child(_camera)
@@ -63,6 +75,24 @@ func _ready() -> void:
 	_reset_camera()
 	await _build_match()
 	_cast_current()
+	if _shots_dir != "":
+		_run_shots()
+
+
+## Bilder zu festen Spielsekunden nach dem Wirken (Physik-Takte: Speichern hält das Spiel kurz an), dann beenden.
+func _run_shots() -> void:
+	DirAccess.make_dir_recursive_absolute(_shots_dir)
+	get_tree().create_timer(60.0).timeout.connect(func() -> void: get_tree().quit(1))
+	var t0 := Engine.get_physics_frames()
+	var index := 0
+	while index < _shot_times.size():
+		await get_tree().process_frame
+		if float(Engine.get_physics_frames() - t0) / Engine.physics_ticks_per_second >= _shot_times[index]:
+			var path := _shots_dir.path_join("%02d.png" % index)
+			get_viewport().get_texture().get_image().save_png(path)
+			print("Screenshot: ", path)
+			index += 1
+	get_tree().quit()
 
 
 func _build_ui() -> void:

@@ -229,8 +229,8 @@ static func _frost_nova(level: int, hero: Hero, world) -> void:
 	var slow := v("frost_nova", level, "slow")
 	var duration := v("frost_nova", level, "duration")
 	for e: Enemy in world.spawner.enemies_in_radius(hero.global_position, radius):
-		world.combat.deal_damage(hero, e, dmg, DamageInfo.Type.MAGIC)
-		if e.is_alive():
+		world.combat.deal_damage(hero, e, dmg, DamageInfo.Type.MAGIC, false, "ice")
+		if e.is_alive() and not e.is_immune("ice"):
 			e.status.apply(StatusEffects.SLOW, duration, slow, hero)
 			world.rewards.record_control(hero, e, StatusEffects.SLOW, e.status.last_gain, slow)
 			world.vfx.burst(e.global_position + Vector3(0, 0.6, 0), FROST, 8, 2.0, 0.5, 0.8, {"gravity": Vector3(0, -3, 0), "tex": "sparkle"})

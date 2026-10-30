@@ -599,3 +599,212 @@ Fehlerbericht #3: Ein Nahkämpfer kann einen Diener angreifen und sofort weglauf
 - **Nicht geprüft:**
   - Ob Treffermoment (`attack_hit_delay`) und Schlagbild der Gegner-Animationen genau zusammenfallen, habe ich nicht Bild für Bild nachgemessen.
   - Im echten Spiel nicht angespielt.
+
+## 2026-10-29 – Zweite Karte „Zitadelle des Lichts“, Phase A (GitHub-Issue #4)
+
+Wunsch des Spielers (Issue #4 mit Kartenskizze): eine große Hero-Defense-Karte. Entscheidungen des Spielers:
+- **zusätzlich zur Arena**, im Menü wählbar;
+- **erst Karte und Bauten** (Phase A); neutrale Lager, Dschungelboss, Kasernen mit eigenen Dienern und Heldenleiste folgen später;
+- **Brunnen hinten in der Zitadelle**; die Schreine am Fluss geben stattdessen einen schwächeren einmaligen Schub mit langer Ladezeit.
+
+- **Kartenwahl:**
+  - Neue Basisklasse `GameMap` (`scripts/maps/game_map.gd`): Gegnerwege, Heldenstart, Kameragrenzen, Minimap-Ausschnitt, `bind_match`.
+  - Die Arena erbt davon; `match.tscn` enthält keine feste Arena mehr. `MatchController` lädt die Karte aus `data/maps/maps.json` (`Session.map_id`). Kern- und Brunnenlage kommen je Karte von dort.
+  - Die Kamera hat Grenzen je Karte (`CameraRig.bounds`).
+  - Im Hauptmenü gibt es die Zeile „Wähle die Karte“.
+- **Grundriss** `data/maps/citadel_layout.json`:
+  - 132 × 76 m; im Westen der Abgrund mit drei Portalen (Abgrundriss, Düsterholz-Bau, Glutentor);
+  - drei Lanes, ein Fluss mit drei Brücken;
+  - die Zitadelle im Osten (Achteck, Radius 14 m) mit Kern, Brunnen und vier Start-Plattformen;
+  - 3 Wachtürme, 2 Schreine, das Händlerhaus, Lagerplätze und der Krater für spätere Phasen.
+- **Aufbau** `scripts/maps/citadel_map.gd`, alles aus dem Grundriss:
+  - **Boden:** analytischer Shader (`assets/effects/citadel_ground.gdshader`): Wiese, gepflasterte Lanes, Flussufer, Vulkangestein mit Glutrissen, gefliester Platz, Erd-Lichtungen. Der einfache sin-Zufall erzeugte eckige Flecken und ist durch einen robusten Hash ersetzt.
+  - **Fluss:** Wasserband mit Strömung (`citadel_water.gdshader`); Sperren nur außerhalb der Brücken.
+  - **Mauerring:** aus KayKit-Mauerteilen mit eigenen Ecktürmen.
+  - **Portale:** Wirbel-Shader (`citadel_portal.gdshader`).
+  - **Natur:**
+    - Klippenring am Rand, Wälder und Felsen (tote Bäume und Glutkristalle im Abgrund);
+    - mit festem Zufall verteilt, als MultiMesh gezeichnet;
+    - Lanes, Fluss, Bauten und Lager bleiben frei; Stämme und Felsen haben Kollision.
+- **14 eigene Blender-Modelle** (`tools/blender_build_citadel_props.py` → `assets/models/environment_custom/`):
+  - Brücke, Zitadellenturm, Torhaus mit Fallgitter, Wachturm, Portalbogen, Start-Plattform, Schrein, Händlerhaus;
+  - Nadel-, Laub- und toter Baum, Fels, Klippe, Abgrund-Kristalle.
+  - Steinteile tragen die gebackene Quadertextur aus dem Brunnen-Bauplan.
+- **Bauwerke** (`scripts/maps/map_structure.gd`, Werte in `game.json` → `map_structures`):
+  - **Wachtürme:** 1.800 Leben, Rüstung 4; schießen alle 1,1 s 34 magischen Schaden auf den nächsten Gegner im Umkreis von 9 m.
+  - **Torhaus:** 3.500 Leben, Rüstung 6, schießt 20 Schaden pro Sekunde. Das Fallgitter liegt auf der Kollisionsebene 16, die nur Gegner aufhält (Gegnermaske 9 → 25); Helden gehen durch.
+  - **Gegner als Angreifer:** Sie greifen ein Bauwerk an, wenn es in ihren Aggro-Radius kommt. Rangfolge: Held vor Bauwerk vor Kern; der Schaden ist `structure_damage`. Gemessen wird ab der Oberfläche, beim Torhaus ab der Mauerlinie (`surface_distance`).
+  - **Gefallene Bauwerke:**
+    - Ein Turm sackt in sich zusammen.
+    - Beim Torhaus bricht das Fallgitter ein, und die Sperre ist weg.
+    - Bauwerke bleiben für die Runde zerstört.
+  - **Kein Gold für Turm-Abschüsse:** Gegner, die nur ein Turm getötet hat, geben kein Gold. Das ist die bestehende Beteiligungsregel.
+- **Schreine** (`scripts/maps/map_shrine.gd`):
+  - Ein verletzter Held oder einer mit fehlendem Mana bekommt beim Berühren einmalig +20 % Leben und +20 % Mana. Danach lädt der Schrein 90 s nach; der Kristall sinkt und wächst beim Laden wieder.
+  - Ein voller Held verbraucht ihn nicht.
+- **HUD:** Minimap oben rechts (`scripts/ui/minimap.gd`):
+  - zeigt Grundriss, Bauwerke, Kern, Brunnen, Helden, Gegner und den Kameraausschnitt;
+  - ein Klick schwenkt die Kamera dorthin (`CameraRig.jump_to`);
+  - darüber die Spieluhr (mm:ss).
+  - Die Minimap gibt es auch in der Arena.
+- **Fehler unterwegs:**
+  - Die ausgesparte Torseite des Mauerrings war die Südwestseite statt der Westseite (`k == 7` statt 0). Jetzt `GATE_FACE := 0`.
+  - Ein Wegpunkt der mittleren Lane liegt genau auf dem Fluss, deshalb entstand die Brücke viermal. Der neue Test fand das; Doppelte werden jetzt verworfen.
+- **Tests:** neue Datei `tests/test_citadel.gd` mit 7 Tests:
+  - Kartendaten;
+  - Aufbau in einer echten Runde;
+  - Torhaus als Sperre (Gegenprobe: ohne Sperrebene läuft der Gegner bis x 42 durch, der Test schlägt dann fehl);
+  - Wachtürme schießen nur in Reichweite und werden angegriffen;
+  - Schrein-Schub und Ladezeit;
+  - Hindernisse nicht auf Lanes, und Gegner aller drei Lanes queren den Fluss;
+  - Minimap und Spieluhr.
+- **Geprüft:**
+  - 114 Tests bestanden.
+  - Bildschirmfotos aus echten Runden: Übersicht, Nahansicht, Spielkamera mit Minimap, Kampf an Turm und Tor, Arena mit Minimap.
+- **Nicht geprüft:**
+  - nicht angespielt, Wellen- und Bauwerkswerte nicht gegengespielt;
+  - Bildrate auf der großen Karte nicht gemessen.
+  - Die Laufwege sind hier ~110 m lang (Arena ~30 m); ob die Wellenabstände dazu passen, ist offen.
+
+## 2026-10-30 – Zitadelle des Lichts nach dem Konzeptbild neu aufgebaut (Issue #4)
+
+Wunsch des Spielers: „Mach die Map genauso wie in der Abbildung, die ich dir geschickt habe“ (Konzeptbild aus Issue #4). Das Bild liegt nicht im Repository; im Issue steht nur ein toter relativer Link. Ich habe es aus dem Gesprächsverlauf entnommen.
+- **Grundriss in Bildpixeln:**
+  - `data/maps/citadel_layout.json` speichert alle Punkte als Pixel des Bildes (1408 × 768). `CitadelMap.to_world` rechnet mit `px_origin` (760, 397) und `px_scale` 0,11 m/px um.
+  - Abgelesen an 2×-Vergrößerungen dreier Bildausschnitte: Portale, Lanes, Ringstraße, Fluss, Brücken, Zitadelle (Sechseck), Torhaus mit zwei Tortürmen, Heldenpunkte vor der Zitadelle, vier Türme, zwei Kasernen, Händlerposten, drei Schreine, Mauern, Ruinen, Lager, Krater, Berge, Abgrund-Felsen.
+- **Mittlere Lane mit zwei Bögen:**
+  - Sie teilt sich vor dem Krater in einen Nord- und einen Südbogen (`"RING"` im Grundriss).
+  - Neu: `GameMap.get_path_variants()`; `EnemySpawner.path_variants` wechselt die Varianten je Gegner ab.
+- **Waldverteilung aus dem Bild gemessen** (`data/maps/citadel_forest.json`):
+  - Farbklassifikation in 8×8-px-Zellen (dunkel, grünlich, unruhig = Wald; sehr dunkel = dichter Wald), mit Mehrheitsfilter.
+  - Minimap, Titel und Seitenleisten des Bildes sind ausgeblendet.
+  - Kontrolliert über ein Overlay auf dem Bild.
+  - Die Streuung nutzt das Raster als Dichte; der Boden-Shader dunkelt den Waldboden danach ab.
+- **Schwebende Insel:**
+  - Der Boden ist ein Vieleck (Plateau-Umriss), darunter eine eingezogene Felswand (`citadel_cliff.gdshader`).
+  - Im Osten Himmel mit Wolkenfeldern (`citadel_cloud.gdshader`).
+  - Die begehbare Grenze folgt einem eigenen Vieleck.
+- **Boden-Shader neu:**
+  - Straßen und Pfade als Strecken mit Breite und Art (Pflaster mit Steinkante / Erdpfad);
+  - Krater, Lavabecken, sechseckiger Hof;
+  - Waldraster als Textur.
+  - Die Farben habe ich aus den sRGB-Werten des Bildes in lineare Werte umgerechnet. Vorher wirkten Straßen und Hof fast weiß.
+  - Nebel ausprobiert und wieder entfernt: Er machte die Draufsicht milchig.
+- **Neue oder geänderte Blender-Modelle** (`tools/blender_build_citadel_props.py`, jetzt 21):
+  - neu: Kaserne, Ruinen, Berg, Basaltnadeln, violette Kristalle, Steinmauer, Zitadellenmauer;
+  - geändert: Torhaus (zwei quadratische Tortürme), Turm (Glut statt blauer Kristall, wie die orange leuchtenden Türme im Bild), Heldenpunkt (blaue Scheibe mit Schwert), dunkleres Laub.
+  - Turmgeschosse sind jetzt orange (`game.json`).
+- **Mechanik angepasst:**
+  - 4 Türme und das Torhaus;
+  - 3 Schreine;
+  - Kasernen mit Kollision (Diener folgen später);
+  - Mauern mit Kollision;
+  - Heldenstart an den ersten vier Heldenpunkten vor dem Tor.
+  - Der Brunnen steht hinten im Hof mit eigenem Wirkkreis 3,2 m (`maps.json` → `fountain_radius`, neu in `GameData` und `MatchController`).
+- **Minimap:** zeigt Himmel und Plateau, Abgrund, Fluss, alle Straßen samt Ring, Pfade, Mauern, Krater und das Sechseck.
+- **Fehler unterwegs:**
+  - Ein Mauerstummel lag nach meinen ersten Koordinaten direkt auf der unteren Lane, und die obere Ostmauer ließ nur wenige Zentimeter Platz. Beides habe ich am Bildausschnitt korrigiert.
+  - Der untere Turm stand genau im Aggro-Radius der Läufer (3,0 m) und ist 0,4 m nach Süden gerückt.
+  - Mein erster Perl-Ersatz für das Torhaus löschte die alte Funktion, ohne die neue einzusetzen (leere Variable). Ich habe die neue Fassung danach eingesetzt.
+- **Tests** (`tests/test_citadel.gd`, 7 Tests, umgeschrieben):
+  - Grundriss in Bildpixeln (Lanes vom Portal bis in die Zitadelle, Kern deckungsgleich mit `maps.json`, Brunnen hinten im Hof, Anzahl der Bauten wie im Bild, Waldraster deckt das Bild ab);
+  - Aufbau in der Runde (5 Bauwerke, 3 Schreine, 3 Brücken, Heldenpunkte vor dem Tor, Nord- und Südbogen, zwei Gegner der Mitte nehmen verschiedene Bögen);
+  - Torsperre (Gegenprobe ohne Sperrebene: der Gegner läuft bis x 44,6 durch, der Test schlägt fehl);
+  - Türme, Schreine;
+  - kein Hindernis auf Straßen oder Ring;
+  - Läufer aller Wege queren den Fluss (Mitte über beide Bögen);
+  - Minimap.
+- **Geprüft:**
+  - 114 Tests bestanden.
+  - Draufsicht deckungsgleich zum Konzeptbild gerendert und untereinander verglichen; dazu Nahansichten von Zitadelle, Krater und Abgrund und die Spielkamera mit Minimap.
+- **Nicht geprüft:**
+  - nicht angespielt, Bildrate auf der Karte mit mehreren hundert Bäumen nicht gemessen;
+  - Stil: Die Karte ist Low-Poly, das Bild gemalt. Grundriss, Farben und Bauten folgen dem Bild, die Malerei selbst nicht.
+
+## 2026-10-30 – Abgrund-Hexer aus Tripo-Modell (noch nicht im Spiel)
+
+Der Spieler hat eine Figur aus Tripo erzeugt (`daemon_hexer.glb`, nach eigenem Entwurf, ohne Vorlage aus fremden Spielen) und wollte sie im Spiel haben. Vorgänger-Entwurf mit grünem Teufelsfeuer wurde verworfen (zu nah an Warcraft).
+- **Tripo-Modell geprüft:** 10.660 Dreiecke, Textur 2k, kein Skelett; die Texturnähte machten aus einem Netz 1.872 Teile (verschweißt: 29, davon 9 sinnvolle). Das Modell hält einen Stab in der Hand.
+- **Umbau** (`tools/blender_build_hexer.py`, 5 Phasen: mesh, skeleton, weights, staff, export):
+  - **mesh:** Nähte verschweißen, Stab, Krone und Splitter abtrennen, auf 2,1 m skalieren und spiegeln (die Stab-Hand wird die rechte, dort sitzt der Handslot), Mitte aus Beinen und Hufen.
+  - **skeleton:** KayKit-Skelett (Rig_Medium aus `Mage.glb`) auf die Gelenke des Modells gesetzt; Gelenke an Rasterbildern abgelesen und automatisch zur Mitte der Glieder gezogen.
+  - **weights:**
+    - Die Gewichte werden in der Haltung des Modells berechnet (Arme hängen bzw. sind gebeugt) mit einem Hilfsskelett.
+    - Dann kommen die Arme in T-Pose (wie die KayKit-Ruhepose) und das Netz an das Spielskelett.
+    - 467 lose Punkte ohne Wärmegewicht gingen an den nächsten Knochen.
+    - Die Hüftspuren der Animationen sind mit der Hüfthöhe skaliert.
+  - **staff:** Der Stab hängt als eigenes Netz an `handslot.r`, die Faust ist um 90° gedreht, damit der Stab wie bei KayKit in der Ruhepose nach vorn zeigt. Der Stab neigt sich nach der Drehung 23,6° gegen die Faustachse; das fällt nur auf, wenn man sehr nah hinsieht.
+  - **Eigene Animationen:** `Hexer_Idle` (Stab aufgesetzt, 2 s) und `Staff_Slam` (1,5 s: Stab hochreißen, auf den Boden stoßen, Rückfedern; der Schlag liegt bei Bild 27 von 45, also bei 60 % der Länge, so wie `_update_ability` es für Bodenschläge erwartet). Gebaut über Zielpunkte, Rumpfneigung, Zwei-Knochen-IK für Beine und rechten Arm.
+  - **export:** `assets/models/enemies_custom/AbyssHexer.glb`, 4,9 MB, 78 Animationen (76 KayKit + 2 eigene), Tripo-Textur als JPEG.
+- **Viewer:** `tools/hexer_viewer.cmd` (Doppelklick): ←/→ Animation, Maus drehen, Mausrad Zoom, Leertaste Pause.
+- **Geprüft:** In Blender Idle, Gehen, Laufen, Zauber, Tod und alle Schlüsselbilder des Staffschlags; in Godot Standbilder im Viewer (Idle, Staffschlag, Zauber). Keine Tests, nicht im Spiel.
+- **Nicht geprüft:** Tod und Treffer-Animation im Viewer nicht angesehen. Die Verformung an Achseln und Rüstung in schnellen Bewegungen ist nur an Standbildern beurteilt. Staffschlag nicht mit Schockwelle im Spiel.
+- **Offen:** Gegner-Eintrag (`enemies.json`), Rolle in den Wellen und eine Schockwelle zum Staffschlag. Warten auf die Entscheidung des Spielers.
+
+## 2026-10-30 – Abgrund-Hexer im Spiel
+
+Wunsch des Spielers: den Hexer im Spiel sehen.
+- **Gegner `abyss_hexer`** (`data/enemies/enemies.json`): Elite, 650 LP, Rüstung 12, Magieresistenz 25, Fernkampf (6 m, violette Geschosse), Fähigkeit „Bodenschlag“ mit der Animation `Staff_Slam`. Er steht in **Welle 7** (Pfad 1, 12 s nach Wellenstart). Werte sind Schätzwerte.
+- **Fehler gefunden und behoben** (`scripts/enemies/enemy.gd`): Ein Treffer ließ den Gegner mitten in der Ankündigung eines Bodenschlags „zucken“ und überschrieb die Animation, im Spiel sah man den Staffschlag deshalb nicht. Jetzt zuckt ein Gegner während der Ankündigung nicht; das gilt auch für Grabritter und Knochenkoloss.
+- **Showcase** `tools/hexer_showcase.cmd`: startet eine echte Runde, in der sofort ein Hexer erscheint (auch `-- --map=citadel`, `-- --hero=arcanist`). Mit `-- --shots=<ordner>` macht er Bilder.
+- **Geprüft:**
+  - 114 Tests bestanden;
+  - in der echten Runde Bilder von Zaubern, Warnkreis, hochgerissenem Stab, Aufprall mit Schockwelle und Schaden am Helden (52).
+- **Nicht geprüft:**
+  - Treffer- und Tod-Animation des Hexers im Spiel;
+  - Wellen- und Gegnerwerte nicht gegengespielt;
+  - Hexer auf der Zitadellenkarte nicht angesehen;
+  - Bildrate mit mehreren Hexern nicht gemessen.
+
+## 2026-10-30 – Live-Verbindung zu Blender (Blender Lab MCP)
+
+Wunsch des Spielers: Claude direkt mit einem offenen Blender verbinden.
+- **Erweiterung:** die offizielle „MCP“ von Blender Lab (Version 1.0.3, aus *Get Extensions*). Sie öffnet auf `localhost:9876` einen Socket; Anfragen sind JSON mit einem Nullbyte am Ende: `{"type": "execute", "code": "...", "strict_json": false}`. Online-Zugriff muss in *Preferences → System → Network* an sein, sonst startet sie nicht. „Auto Start“ startet den Server nach 1 s.
+- **Anbindung:** `tools/blender_live.js` (Node): `node tools/blender_live.js "<Python-Code>"` führt Code im offenen Blender aus und gibt `print`-Ausgaben zurück. Ein MCP-Server ist dafür nicht nötig.
+- **Erster Versuch (verworfen):** `mcp-for-blender` (Drittanbieter) mit Add-on `mcp_for_blender.py` in `scripts/addons`. Es lief als zweiter Server auf demselben Port (Windows erlaubt das wegen `SO_REUSEADDR`) und fing meine Verbindungen ab, ohne zu antworten. Add-on gelöscht, Claude-Eintrag `blender` entfernt.
+- **Geprüft:** Befehl ausgeführt (Blender 5.2.3 antwortet), Objekt angelegt und wieder gelöscht, Bild aus dem offenen Blender gerendert und angesehen.
+- **Nicht geprüft:** Ob das Modellieren damit leichter fällt (erst beim ersten echten Modell). Die Erweiterung führt beliebigen Python-Code aus: nur mit geöffnetem Blender nutzen.
+
+## 2026-10-30 – Frostdrache aus Tripo (erstes Modell über Live-Blender)
+
+Wunsch des Spielers: das Tripo-Modell `blue dragon.glb` einbauen und animieren.
+- **Skript** `tools/blender_build_frostdrake.py`: Phasen mesh, skeleton, weights, export (`--stage`, `--preview <ordner>`, `--src`, `--out`). Läuft headless und live im offenen Blender (eigene Szene „Frostdrache“, die Szene des Spielers bleibt unberührt).
+  - **mesh:** Nähte verschweißen (0,0015), auf 3,0 skaliert, Front bleibt -Y.
+  - **skeleton:** Hilfsskelett an den Gelenken des Modells (Tabellen `BODY`, `TAIL`, `SIDE`, gespiegelt).
+  - **weights:** Gewichte in der Haltung des Modells, dann jedes Glied in die Ruhehaltung des Glutdrachen gedreht und als neue Ruhe übernommen. Das fertige Skelett hat die Knochenausrichtung des Glutdrachen mit den Längen des Hilfsskeletts; Positionsspuren werden umskaliert. 41 Gewichtsgruppen, 18 Punkte ohne Gewicht nachgefüllt.
+  - **export:** `assets/models/enemies_custom/FrostDrake.glb`, 2,5 MB, 9 Animationen des Glutdrachen, Textur als JPEG.
+- **Viewer:** `tools/dragon_viewer.gd` kann mit `-- --frost` den Frostdrachen zeigen; `tools/frost_viewer.cmd` startet ihn per Doppelklick.
+- **Geprüft:** In Blender Skelett und Posen (Idle, Walk, Biss, Feuerodem, Brüllen, Fliegen, Tod); in Godot Viewer-Bilder derselben Posen und von der Seite, mit Guardian zum Größenvergleich. Keine Tests.
+- **Nicht geprüft:** Prankenhieb und Treffer, Animationen in Bewegung, Flügelhaut und Schultern aus der Nähe. Nicht im Spiel (kein Gegner-Eintrag, keine Welle). Tripo-Lizenz nicht geprüft.
+
+## 2026-10-30 – Eisdrache als Boss (Issue #9)
+
+Vorgabe: Issue #9 (Eisdrache: Hybrid, Eis-Immunität, Feuer- und Giftschwäche, Unterkühlung, Eisfeuer-Odem, Schneesturm, Arktischer Schrei). Das Modell war schon fertig (Frostdrache).
+- **Elemente:** `DamageInfo.element`, `CombatService.deal_damage(..., element)`; `Enemy.element_multiplier()` aus `data.elements`. Fireball = Feuer, Frost Nova und Gletscherspalt = Eis (bei Immunität auch keine Verlangsamung, Betäubung oder Anheben), Giftstapel = Gift.
+- **Neue Zustände:** `chill` (Angriffstempo-Malus, wirkt in `Hero.current_attack_interval`) und `frostbite` (Stapel bis zum Einfrieren).
+- **Gegner:** Hybrid über `data.melee` (Nahkampf, wenn ein Held am Körper steht), `data.on_hit` (Unterkühlung), `body_radius`, `bar_height`, `projectile.forward`. `ARMOR_BONUS` erhöht jetzt Rüstung und Magieresistenz von Gegnern.
+- **BossBrain:** Fähigkeiten nur, wenn sie in den Daten stehen; neu `frost_breath` (Kegel mit Bodenwarnung), `blizzard` (Sturmzonen mit Takt), `frost_roar` (Helden bremsen, Gegner panzern); `color` und `phase_anim` je Boss.
+- **Effekte:** `VfxLayer.cone_indicator`, `frost_breath`, `blizzard`.
+- **Daten:** `ice_drake` (Mini-Boss mit drei Phasen), Welle 8 heißt jetzt „Der Eisdrache“ (ersetzt einen Grabritter). Alle Werte Schätzwerte.
+- **Showcase:** `tools/hexer_showcase.gd` nimmt `-- --enemy=<id>`; `tools/ice_drake_showcase.cmd`. Bildzeiten zählen jetzt Spielsekunden statt Uhrzeit (Speichern eines Bildes hielt das Spiel an, Bilder kamen zu früh).
+- **Geprüft:**
+  - 121 Tests bestanden, davon 7 neue in `tests/test_ice_drake.gd` (Daten, Elemente und Frost Nova, Unterkühlung, Wechsel Fern-/Nahkampf, Odem nur im Kegel, Schneesturm friert ein, Schrei panzert Gegner und bremst Helden);
+  - in einer echten Runde Bilder von Eisgeschossen, Odem-Warnung und -Strahl, Schrei, Schneesturm und Einfrieren.
+- **Nicht geprüft:**
+  - Werte nicht gegengespielt (Welle 8 kann zu schwer sein);
+  - Zitadellenkarte nicht angesehen;
+  - die Hexer-Bildzeiten des Showcase sind nach der Umstellung auf Spielsekunden nicht neu geprüft;
+  - Mehrspieler nicht geprüft.
+
+## 2026-10-30 – Eisangriff in acht Schritten (Eisdrache und Glacial Rift)
+
+Vorgabe des Spielers: acht Schritte für den Eisangriff (Aufladen, Stacheln aus dem Maul, Wachsen zum Ziel, seitliches Auffächern, Boden reißt mit Brocken, großer Abschluss mit Blitz und Kamerastoß, Schmelzen und Zersplittern, Frost in der Luft); dasselbe für den Magier, „nur statt aus dem Mund aus dem Boden“.
+- **VfxLayer:** `ice_charge`, `ice_spike_path`, `_spike`, `_icicle`, `ice_impact`, `frost_linger`, `_ground_cracks` (prozedurale leuchtende Risse). `frost_breath` und `ice_eruption` entfernt (ersetzt).
+- **Eisdrache:** Aufladen im Maul während der 1-s-Warnung; Zapfen fliegen aus dem Maul, der Einschlag sitzt dort, wo der Held bei der Ankündigung stand. Schaden kommt jetzt, wenn die Stacheln den Helden erreichen (vorher sofort).
+- **Glacial Rift (Arcanist):** 0,3 s Aufladen an der Hand, erst dann läuft die Stachelfront (Spielwirkung: Treffer 0,3 s später). Getroffene bekommen Risse und Brocken (höchstens 6), am Ende der Bahn der große Abschluss.
+- **Behoben:** Das Aufladeglühen wuchs nicht, weil Billboard-Materialien ohne `billboard_keep_scale` die Skalierung ignorieren.
+- **Werkzeug:** `tools/skill_showcase.gd` kann jetzt Bilder machen (`--shots`, `--times`, `--level`).
+- **Geprüft:**
+  - 121 Tests bestanden (Glacial-Rift- und Odem-Test an das neue Timing angepasst, prüfen jetzt auch „noch kein Treffer“ davor);
+  - Bildfolgen beider Angriffe im Spiel angesehen: alle acht Schritte sichtbar.
+- **Nicht geprüft:** Bildrate bei vielen gleichzeitigen Eisangriffen; Glacial Rift auf Stufe 1 und 2 nicht angesehen; der große Abschluss des Rifts lag in der Showcase-Kamera am Bildrand.

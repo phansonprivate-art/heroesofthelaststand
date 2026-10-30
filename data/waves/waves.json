@@ -69,17 +69,18 @@
         { "enemy": "grunt", "count": 8, "path": 2, "interval": 0.9, "delay": 0 },
         { "enemy": "brute", "count": 3, "path": 0, "interval": 4.0, "delay": 8 },
         { "enemy": "seer", "count": 6, "path": 1, "interval": 1.5, "delay": 10 },
+        { "enemy": "abyss_hexer", "count": 1, "path": 1, "interval": 1.0, "delay": 12 },
         { "enemy": "runner", "count": 10, "path": 2, "interval": 0.5, "delay": 14 }
       ]
     },
     {
-      "name": "Die Ehrengarde",
-      "prepare_seconds": 40,
+      "name": "Der Eisdrache",
+      "prepare_seconds": 45,
       "groups": [
         { "enemy": "grave_knight", "count": 2, "path": 0, "interval": 4.0, "delay": 0 },
         { "enemy": "seer", "count": 6, "path": 0, "interval": 1.4, "delay": 3 },
         { "enemy": "brute", "count": 3, "path": 1, "interval": 4.0, "delay": 6 },
-        { "enemy": "grave_knight", "count": 1, "path": 2, "interval": 1.0, "delay": 12 },
+        { "enemy": "ice_drake", "count": 1, "path": 2, "interval": 1.0, "delay": 10 },
         { "enemy": "runner", "count": 10, "path": 2, "interval": 0.5, "delay": 14 }
       ]
     },

@@ -1,5 +1,5 @@
 class_name Arena
-extends Node3D
+extends GameMap
 ## Arena: Boden, Spawnpfade und Heldenstartpunkt stehen in der Szene (im Editor anpassbar).
 ## Mauerring, Tore, Pfadmarkierungen und Deko werden hier aus KayKit-Teilen gebaut.
 
@@ -33,8 +33,16 @@ func get_spawn_paths() -> Array[PackedVector3Array]:
 	return result
 
 
-func hero_spawn_point() -> Vector3:
+func hero_spawn_point(_index := 0) -> Vector3:
 	return hero_spawn.global_position
+
+
+func camera_bounds() -> Rect2:
+	return Rect2(-HALF + 6.0, -HALF + 6.0, HALF * 2.0 - 12.0, HALF * 2.0 - 12.0)
+
+
+func minimap_extent() -> Rect2:
+	return Rect2(-HALF, -HALF, HALF * 2.0, HALF * 2.0)
 
 
 func _gate_positions() -> Array[Vector3]:

@@ -17,6 +17,8 @@ var paths: Array[PackedVector3Array] = []
 var core: DefenseCore
 var combat: CombatService
 var heroes: Array[Hero] = []   ## mögliche Ziele für die Nähe-Aggro der Gegner
+var path_variants: Dictionary = {}   ## Pfadnummer -> Wegvarianten (Zitadelle: Mitte über Nord- oder Südbogen), abwechselnd genutzt
+var structures: Array[MapStructure] = []   ## Bauwerke der Karte (Wachtürme, Torhaus), von der Karte eingetragen
 var world: Node                  ## MatchController (Effekte, Geschosse, Kamera für Gegnerfähigkeiten)
 var hp_multiplier := 1.0         ## Spielerzahl-Skalierung
 var wave_number := 1             ## aktuelle Welle; steuert die Schwierigkeitssteigerung
@@ -29,6 +31,7 @@ var killed_total := 0
 var _alive: Array[Enemy] = []
 var _grid: Dictionary = {}   ## Vector2i -> Array[Enemy], jeden Physik-Frame neu aufgebaut
 var _enemy_scene: PackedScene
+var _variant_next: Dictionary = {}   ## Pfadnummer -> nächste Variante
 
 
 func spawn(enemy_id: String, path_index: int) -> Enemy:
@@ -45,6 +48,11 @@ func spawn(enemy_id: String, path_index: int) -> Enemy:
 		push_error("Ungültiger Pfad %d, nutze 0" % path_index)
 		path_index = 0
 	var path := paths[path_index]
+	var variants: Array = path_variants.get(path_index, [])
+	if variants.size() > 1:
+		var k: int = _variant_next.get(path_index, 0)
+		path = variants[k % variants.size()]
+		_variant_next[path_index] = k + 1
 	var side := Vector3(randf_range(-SPAWN_JITTER, SPAWN_JITTER), 0.0, randf_range(-SPAWN_JITTER, SPAWN_JITTER))
 	var e := _create(def, path, path[0] + side)
 	if path.size() > 1:
@@ -132,6 +140,20 @@ func nearest_hero(point: Vector3, radius: float) -> Hero:
 		if d <= best_d:
 			best_d = d
 			best = h
+	return best
+
+
+## Nächstes stehendes Bauwerk, gemessen ab seiner Oberfläche (Torhaus: ab der Mauerlinie).
+func nearest_structure(point: Vector3, radius: float) -> MapStructure:
+	var best: MapStructure = null
+	var best_d := radius
+	for s in structures:
+		if not is_instance_valid(s) or not s.is_alive():
+			continue
+		var d := s.surface_distance(point)
+		if d <= best_d:
+			best_d = d
+			best = s
 	return best
 
 

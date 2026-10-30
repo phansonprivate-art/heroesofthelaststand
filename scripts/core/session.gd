@@ -5,6 +5,7 @@ const MENU_SCENE := "res://scenes/main/main_menu.tscn"
 const MATCH_SCENE := "res://scenes/main/match.tscn"
 
 var hero_id := "guardian"
+var map_id := "arena"            ## gewählte Karte (data/maps/maps.json)
 var player_count := 1
 ## Überschreibt Telemetrie-Ordner/-Schalter (Tests und Werkzeuge schreiben so nicht in die echten Daten).
 var telemetry_directory_override := ""

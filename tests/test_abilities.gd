@@ -448,7 +448,9 @@ func test_glacial_rift(t) -> void:
 		e.global_position = center + spots[i]
 	hero.set_physics_process(false)   # keine Auto-Angriffe: gezählt wird nur das Eis
 	t.check(_cast(m, "glacial_rift", null, center + Vector3(6, 0, 0)), "Glacial Rift gewirkt")
-	await t.frames(6)   # Front nach 0,1 s bei etwa 2,6 m
+	await t.frames(6)
+	t.eq(foes[0].health.hp, 100000.0, "während des Aufladens (0,3 s) noch kein Treffer")
+	await t.frames(18)   # 0,3 s Aufladen, dann Front nach 0,1 s bei etwa 2,6 m
 	t.check(foes[0].health.hp < 100000.0, "naher Gegner schon getroffen")
 	t.eq(foes[1].health.hp, 100000.0, "ferner Gegner noch nicht: Welle läuft nach vorn")
 	t.check(foes[0].status.is_stunned(), "Getroffene werden hochgeschleudert (betäubt)")

@@ -49,6 +49,8 @@ Gemeinsam für alle:
 | Grabkoloss | `brute` | langsam, zäh | sehr hoher Kernschaden |
 | Knochenseher | `seer` | Fernkämpfer | schießt aus 7 m magische Geschosse, bleibt auf Abstand |
 | Grabritter | `grave_knight` | Elite | **Bodenschlag:** roter Warnkreis (1 s, steht still), dann Schaden und Verlangsamung im Kreis |
+| Abgrund-Hexer | `abyss_hexer` | Elite (ab Welle 7) | Fernkämpfer (6 m, violette Zauberkugeln); **Staffschlag:** reißt den Stab hoch und stößt ihn auf den Boden (1 s Ankündigung mit Warnkreis, 4,5 m, Schaden und Verlangsamung). Modell aus Tripo auf dem KayKit-Skelett, eigene Animation `Staff_Slam` |
+| Eisdrache | `ice_drake` | Mini-Boss mit Bossphasen (Welle 8) | Issue #9, siehe unten. Modell: Tripo-Drache auf dem Skelett des Glutdrachen (`FrostDrake.glb`) |
 | Knochenkoloss | `colossus` | Mini-Boss (Welle 5 und 9) | sehr zäh, Kontrollresistenz 60 %, großer Bodenschlag |
 | Morvath, der Totenbeschwörer | `morvath` | Endboss (Welle 10) | drei Phasen, siehe unten |
 
@@ -64,6 +66,15 @@ Die vier neuen Figuren sind eigene Blender-Modelle (`tools/blender_build_enemies
 1. **ab 100 %:** Fernkampfgeschosse; beschwört alle 14 s vier Skelette, deren Beschwörungskreise 1,2 s vorher am Boden erscheinen.
 2. **unter 66 % – Seelenfeuer:** zusätzlich grüne Kreise unter bis zu drei Helden; nach 1,5 s Explosion. Wer ausweicht, bleibt heil.
 3. **unter 33 % – Raserei und Todeswelle:** 50 % schnellere Angriffe, 30 % schneller; alle 11 s wächst ein violetter Ring (9 m) um den Boss, nach 2,2 s Schaden im ganzen Kreis.
+
+**Eisdrache (Issue #9, drei Phasen, `data.boss`):**
+- **Kampfart:** schießt aus 8 m Eisgeschosse; steht ein Held dicht am Körper, schlägt er mit Klaue und Biss zu.
+- **Elemente:** immun gegen Eis (kein Schaden, keine Verlangsamung oder Betäubung durch Frost Nova und Gletscherspalt), +50 % Schaden durch Feuer (Fireball) und Gift (Giftstapel). Sehr hohe Rüstung (65).
+- **Unterkühlung (passiv):** Jeder Treffer bremst Lauf- und Angriffstempo des Helden um 20 % für 2 s.
+- **Eisfeuer-Odem (ab Phase 1):** Kegel (9 m, 70°) erscheint 1 s vorher am Boden, währenddessen sammelt sich Magie im Maul. Dann fliegen Eiszapfen aus dem Maul, Stacheln laufen nach vorn (22 m/s) und brechen um das Ziel als großer Eiscluster aus. Wer bei der Ankündigung im Kegel stand, nimmt Frostschaden, sobald die Stacheln ihn erreichen, und wird verlangsamt (60 %, Angriffe 40 %).
+- **Arktischer Schrei (ab Phase 1, alle 18 s):** Helden in 14 m 4 s lang 40 % langsamer (Laufen und Angriff); Gegner in 14 m 6 s lang +25 Rüstung und Magieresistenz.
+- **Schneesturm (ab Phase 2, unter 60 %):** Kreis (4 m) an einem Helden, 1 s Warnung, dann 5 s Sturm: Schaden alle 0,5 s, jeder Takt ein Stapel Erfrierung, bei 6 Stapeln 1,5 s eingefroren.
+- **Phase 3 (unter 30 %):** 30 % schnellere Angriffe, 20 % schneller.
 
 Phasenwechsel und Auftritt werden als Banner angekündigt; die Bossleiste oben zeigt Lebenspunkte und Phase. Stirbt Morvath, zerfallen seine Beschwörungen. Betäubung unterbricht Bodenschläge (Bosse sind dagegen zu 75 % resistent).
 
@@ -93,9 +104,54 @@ Helden ziehen Gegner also schon durch ihre Nähe auf sich. Das ist die Grundlage
   5. Der Koloss erwacht (Mini-Boss)
   6. Grabritter
   7. Dreifacher Ansturm
-  8. Die Ehrengarde
+  8. Der Eisdrache (Mini-Boss mit Bossphasen)
   9. Die letzte Flut (Mini-Boss)
   10. Morvath, der Totenbeschwörer (Endboss)
+
+## Zitadelle des Lichts (Phase A umgesetzt, Issue #4)
+
+Zweite Karte, im Hauptmenü wählbar (die Arena bleibt). **Nach dem Konzeptbild des Spielers aufgebaut** (Wunsch des Spielers: „genauso wie in der Abbildung“). Der Grundriss in `data/maps/citadel_layout.json` steht in Pixeln dieses Bildes (1408 × 768) und wird mit 0,11 m je Pixel umgerechnet. Die Karte ist damit rund 128 × 73 m begehbar.
+- **Abgrund (Westen):**
+  - dunkles, rötliches Vulkangestein mit Glutrissen und zwei Lavabecken;
+  - schwarze Felsnadeln, violette Kristalle oben links, tote Bäume;
+  - drei Portale: **Abgrundriss** (oben, violett), **Düsterholz-Bau** (Mitte, violett), **Glutentor** (unten, orange).
+- **Lanes:**
+  - Drei gepflasterte Straßen mit heller Steinkante führen nach Osten.
+  - Die **mittlere Lane teilt sich vor dem Krater des Dschungelbosses** in einen Nord- und einen Südbogen (Ringstraße) und vereint sich davor wieder. Gegner der Mitte nehmen abwechselnd einen der beiden Bögen.
+  - Alle drei queren den Fluss über je eine Steinbrücke und laufen dann zum Torhaus.
+  - Die Wellen nutzen dieselben Pfadnummern wie in der Arena (0 oben, 1 Mitte, 2 unten).
+- **Dschungel:**
+  - zwei Waldblöcke zwischen den Lanes, jeweils mit einer Lagerlichtung (für neutrale Lager, spätere Phase) und Ruinen;
+  - Erdpfade wie im Bild;
+  - dunkler Wald im Norden und Süden;
+  - die Waldverteilung ist aus dem Bild gemessen (`data/maps/citadel_forest.json`).
+- **Mitte:** Krater des Dschungelbosses (Boss folgt später), umgeben von der Ringstraße.
+- **Bauten:**
+  - zwei Kasernen (Diener folgen später), Händlerposten (nur Kulisse; Shop bleibt auf B), drei Schreine;
+  - Steinwälle: einer nördlich der oberen Lane, zwei am Ring, einer an der unteren Lane, Mauern östlich des Flusses.
+- **Türme** (wie im Bild):
+  - zwei Fort-Türme an der oberen Lane, einer hinter dem Fluss oben, einer an der unteren Lane;
+  - schießen Glutgeschosse auf den nächsten Gegner im Umkreis von 9 m;
+  - Gegner greifen sie an, sobald sie in ihren Aggro-Radius kommen;
+  - Abschüsse nur durch Türme geben kein Gold.
+- **Zitadelle (Osten, auf einer Klippe über den Wolken):**
+  - sechseckiger Mauerring mit vier Ecktürmen und Feuerschalen;
+  - Kern in der Mitte, **Brunnen der Erholung hinten** (Wirkkreis hier 3,2 m);
+  - einziger Zugang ist das Torhaus mit zwei Tortürmen im Westen.
+- **Heldenpunkte:** vor der Zitadelle links oben und links unten, wie im Bild (blaue Scheiben mit Schwert). Die ersten vier sind die Start- und Wiedereinstiegspunkte.
+- **Torhaus:**
+  - Das Fallgitter hält nur Gegner auf, Helden gehen hindurch.
+  - Gegner müssen es erst zerstören (3.500 Leben); es schießt selbst.
+  - Fällt es, ist der Weg zum Kern frei.
+- **Schreine:**
+  - einmaliger Schub **+20 % Leben und Mana** für einen verletzten Helden, danach **90 s Ladezeit**;
+  - bewusst schwächer als der Brunnen (Wunsch des Spielers).
+- **Rand:**
+  - Berge im Norden, aus denen der Fluss kommt;
+  - im Osten fällt das Plateau als Felswand ab, darunter Himmel und Wolken.
+- **Gefallene Bauwerke** bleiben für die Runde zerstört.
+- **Minimap** oben rechts (auch in der Arena) mit Spieluhr; ein Klick schwenkt die Kamera.
+- **Später (weitere Phasen):** neutrale Lager und Dschungelboss, Kasernen mit eigenen Dienern, Heldenleiste.
 
 ## Kern (umgesetzt)
 

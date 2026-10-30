@@ -48,6 +48,7 @@ var _boss_name: Label
 var _boss_bar: ProgressBar
 var _boss_label: Label
 var _boss: Enemy
+var _minimap: Minimap
 
 
 func _ready() -> void:
@@ -61,6 +62,9 @@ func _ready() -> void:
 	_build_hero_panel()
 	_build_banner()
 	_build_hint()
+	_minimap = Minimap.new()
+	_minimap.name = "Minimap"
+	_root.add_child(_minimap)
 	_ability_bar = AbilityBar.new()
 	_root.add_child(_ability_bar)
 	_hint_label = UiTheme.label("", 17, UiTheme.DANGER, HORIZONTAL_ALIGNMENT_CENTER)
@@ -104,6 +108,7 @@ func bind(m: MatchController) -> void:
 	_on_hero_changed(hero.health.hp, hero.health.max_hp)
 	_on_mana_changed(hero.mana, hero.stats.max_mana())
 	_refresh_progress()
+	_minimap.bind(m)
 	_character_window.bind(m)
 	_ability_bar.bind(m)
 	_ability_bar.shop_requested.connect(func(tab: int) -> void: _shop.open(tab))

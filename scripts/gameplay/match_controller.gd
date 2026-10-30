@@ -9,7 +9,7 @@ enum Phase { RUNNING, VICTORY, DEFEAT }
 
 const HERO_SCENE := preload("res://scenes/heroes/hero.tscn")
 
-@onready var arena: Arena = $Arena
+var arena: GameMap   ## gewählte Karte (data/maps/maps.json), in _ready geladen
 @onready var core: DefenseCore = $Core
 @onready var combat: CombatService = $Combat
 @onready var spawner: EnemySpawner = $EnemySpawner
@@ -41,6 +41,14 @@ var elapsed := 0.0
 
 
 func _ready() -> void:
+	var map_def := GameData.map(Session.map_id)
+	arena = (load(String(map_def.scene)) as PackedScene).instantiate()
+	arena.definition = map_def
+	arena.name = "Arena"
+	add_child(arena)
+	move_child(arena, 0)
+	core.position = map_def.core
+	camera_rig.bounds = arena.camera_bounds()
 	core.setup(float(GameData.setting("core", "max_hp", 10000)), float(GameData.setting("core", "critical_ratio", 0.25)))
 	core.destroyed.connect(_on_core_destroyed)
 	core.health.damaged.connect(func(_i: DamageInfo) -> void: camera_rig.shake(0.35))
@@ -48,6 +56,7 @@ func _ready() -> void:
 	spawner.container = enemies_root
 	spawner.world = self
 	spawner.paths = arena.get_spawn_paths()
+	spawner.path_variants = arena.get_path_variants()
 	spawner.core = core
 	spawner.combat = combat
 	spawner.hp_multiplier = GameData.enemy_hp_multiplier(Session.player_count)
@@ -86,7 +95,13 @@ func _ready() -> void:
 	fountain = RecoveryFountain.new()
 	fountain.name = "Fountain"
 	add_child(fountain)
-	fountain.setup(GameData.balance.get("fountain", {}), heroes, vfx)
+	var fountain_config: Dictionary = GameData.balance.get("fountain", {}).duplicate()
+	if map_def.has("fountain"):   # jede Karte bestimmt die Lage selbst
+		fountain_config.position = [map_def.fountain.x, map_def.fountain.y, map_def.fountain.z]
+	if map_def.has("fountain_radius"):
+		fountain_config.radius = map_def.fountain_radius
+	fountain.setup(fountain_config, heroes, vfx)
+	arena.bind_match(self)
 	wave_manager.start()
 
 
@@ -114,7 +129,7 @@ func _spawn_hero(hero_id: String, peer_id: int) -> Hero:
 	hero.peer_id = peer_id
 	hero.name = "Hero_%d" % peer_id
 	heroes_root.add_child(hero)
-	hero.setup(def, combat, spawner, arena.hero_spawn_point(), float(GameData.setting("heroes", "respawn_seconds", 6.0)))
+	hero.setup(def, combat, spawner, arena.hero_spawn_point(peer_id - 1), float(GameData.setting("heroes", "respawn_seconds", 6.0)))
 	hero.projectile_root = projectiles_root
 	hero.world = self
 	hero.inventory = Inventory.new(int(GameData.setting("rewards", "bag_size", 6)), int(GameData.setting("rewards", "consumable_slots", 2)))

@@ -16,7 +16,8 @@ func _ready() -> void:
 
 ## Fügt `target` Schaden zu, sofern es eine HealthComponent in `health` besitzt.
 ## Gibt den tatsächlich verursachten Schaden zurück.
-func deal_damage(source: Node, target: Node3D, amount: float, type := DamageInfo.Type.PHYSICAL, is_crit := false) -> float:
+## element ("fire", "ice", "poison"): Das Ziel kann darauf über element_multiplier() reagieren (Eisdrache: immun gegen Eis).
+func deal_damage(source: Node, target: Node3D, amount: float, type := DamageInfo.Type.PHYSICAL, is_crit := false, element := "") -> float:
 	if not multiplayer.is_server():
 		return 0.0
 	if target == null or not is_instance_valid(target):
@@ -31,6 +32,9 @@ func deal_damage(source: Node, target: Node3D, amount: float, type := DamageInfo
 	var info := DamageInfo.create(amount, type, source)
 	info.is_crit = is_crit
 	info.amount = mitigate(amount, type, target)
+	info.element = element
+	if element != "" and target.has_method("element_multiplier"):
+		info.amount *= float(target.call("element_multiplier", element))
 	# Schadensreduktion aus Zuständen (Segen, Bastion, Runen) – gedeckelt in StatusEffects
 	if status != null and type != DamageInfo.Type.TRUE and status.damage_reduction() > 0.0:
 		var before := info.amount

@@ -11,6 +11,9 @@ const START := 1.0          ## erste Gruppe vor dem Helden (er soll nicht im eig
 const HALF_WIDTH := 0.9
 const COLOR := Color(0.6, 0.88, 1.0)
 const LIFT_HEIGHT := 1.3
+const CHARGE := 0.3         ## Aufladen an der Hand, erst danach läuft die Stachelfront los
+const FAN_DEGREES := 14.0   ## Seitenstacheln fächern leicht auf (mindestens 0,5 m neben der Bahn)
+const MAX_IMPACTS := 6      ## so viele Getroffene bekommen Bodenrisse
 
 var hero: Hero
 var world
@@ -42,11 +45,16 @@ func start(p_hero: Hero, p_world, point: Vector3, p_length: float, p_damage: flo
 	dir = to.normalized() if to.length() > 0.1 else -hero.global_basis.z
 	dir.y = 0.0
 	dir = dir.normalized()
-	world.vfx.line_indicator(origin + dir * 0.5, dir, length, HALF_WIDTH * 2.0, COLOR, 0.55)
+	world.vfx.line_indicator(origin + dir * 0.5, dir, length, HALF_WIDTH * 2.0, COLOR, 0.55 + CHARGE)
+	# Eisangriff in acht Schritten (VfxLayer): aufladen, Stachelbahn aus dem Boden, großer Abschluss am Ende der Bahn
+	world.vfx.ice_charge(hero.global_position + Vector3(0, 1.2, 0) + dir * 0.6, CHARGE, 0.8)
+	world.vfx.ice_spike_path(origin, dir, length, FAN_DEGREES, wall_time, SPEED, null, CHARGE, START)
+	world.vfx.ice_impact(origin + dir * length, 1.8, wall_time, CHARGE + (length - START) / SPEED)
+	_front = -SPEED * CHARGE   # die Front startet erst nach dem Aufladen
 	# Ausbruch-Klang kommt beim Wirken (cast_glacial_rift); das Zersplittern einmal mitten auf der Bahn
 	var w = world
 	var mid := origin + dir * length * 0.5
-	world.get_tree().create_timer(length / SPEED + wall_time + 0.1, false).timeout.connect(func() -> void:
+	world.get_tree().create_timer(CHARGE + length / SPEED + wall_time + 0.1, false).timeout.connect(func() -> void:
 		if is_instance_valid(w):
 			w.match_audio.play_at("ice_shatter", mid))
 
@@ -62,7 +70,6 @@ func _physics_process(delta: float) -> void:
 
 func _erupt(d: float) -> void:
 	var pos := origin + dir * d
-	world.vfx.ice_eruption(pos, dir, wall_time)
 	_spawn_wall(pos)
 	var source: Node = hero if is_instance_valid(hero) else null
 	for e: Enemy in world.spawner.enemies_in_radius(pos, STEP + HALF_WIDTH + 1.0):
@@ -74,8 +81,10 @@ func _erupt(d: float) -> void:
 		if along < 0.0 or along > d + STEP * 0.5 or lateral > HALF_WIDTH + e.body_radius:
 			continue
 		_hit[e] = true
-		world.combat.deal_damage(source, e, damage, DamageInfo.Type.MAGIC)
-		if not e.is_alive():
+		if _hit.size() <= MAX_IMPACTS:   # 5. Boden reißt um den Getroffenen auf (begrenzt: Effekt-Budget)
+			world.vfx.ice_impact(e.global_position, 1.1, wall_time * 0.6, 0.0, false)
+		world.combat.deal_damage(source, e, damage, DamageInfo.Type.MAGIC, false, "ice")
+		if not e.is_alive() or e.is_immune("ice"):   # eisimmune Gegner (Eisdrache) werden weder gehoben noch gebremst
 			continue
 		e.status.apply(StatusEffects.STUN, lift, 0.0, source)
 		world.rewards.record_control(source, e, StatusEffects.STUN, e.status.last_gain)

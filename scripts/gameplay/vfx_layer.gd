@@ -24,6 +24,7 @@ var _shard_meshes: Array[Mesh] = []
 var _ice_material: StandardMaterial3D
 var _knife_mesh: Mesh
 var _knife_basis := Basis.IDENTITY   ## legt die Klinge waagerecht
+var _camera_rig: Node                ## Kamerastoß beim großen Eis-Einschlag (aus bind)
 
 
 func _ready() -> void:
@@ -43,6 +44,7 @@ func _ready() -> void:
 
 
 func bind(m: MatchController) -> void:
+	_camera_rig = m.camera_rig
 	m.spawner.enemy_spawned.connect(func(e: Enemy) -> void:
 		smoke(e.global_position + Vector3(0, 0.3, 0), Color(0.3, 0.26, 0.22, 0.8), 1.0, 1.0, 14, "dirt_02")
 		decal(e.global_position, "scorch_03", 1.4, Color(0.1, 0.08, 0.06, 0.6), 2.0, 0.0, false)
@@ -736,42 +738,326 @@ func line_indicator(from: Vector3, dir: Vector3, length: float, width: float, co
 	tween.tween_callback(_release.bind(root))
 
 
-## Eisausbruch an einer Stelle der Eisbahn: Boden reißt auf, Gesteinsbrocken fliegen, drei große Eiskristalle
-## (Blender-Modelle) schießen schräg nach vorn-oben (ca. 60° zum Boden), stehen `hold` Sekunden und zersplittern.
-func ice_eruption(pos: Vector3, dir: Vector3, hold := 1.8) -> void:
-	if _shard_meshes.is_empty():
-		_load_shards()
-	var ground := Vector3(pos.x, 0.0, pos.z)
-	decal(ground, "scorch_03", 1.1, Color(0.25, 0.35, 0.45, 0.85), hold + 0.6, 0.0, false)
-	burst(ground + Vector3(0, 0.3, 0), Color(0.42, 0.38, 0.34), 10, 6.0, 0.35, 0.7,
-		{"gravity": Vector3(0, -14, 0), "spread": 50.0, "glow": false, "tex": "dirt_02"})
-	burst(ground + Vector3(0, 0.6, 0), Color(0.75, 0.92, 1.0), 8, 3.0, 0.4, 0.5, {"gravity": Vector3(0, -4, 0), "tex": "sparkle"})
-	if _shard_meshes.is_empty() or not _reserve():
+## Vorwarnung eines Kegelangriffs (Eisfeuer-Odem): blasser Fächer am Boden, darin wächst ein zweiter Fächer vom
+## Ursprung bis zum Rand – ist er voll, schlägt der Angriff zu.
+func cone_indicator(from: Vector3, dir: Vector3, length: float, angle_deg: float, color: Color, duration: float) -> void:
+	if not _reserve():
 		return
 	var root := Node3D.new()
 	add_child(root)
-	root.global_position = ground
-	var tilt_axis := Vector3.UP.cross(dir).normalized()
-	var side := dir.cross(Vector3.UP).normalized()
-	for i in 3:
-		var shard := MeshInstance3D.new()
-		shard.mesh = _shard_meshes[randi() % _shard_meshes.size()]
-		shard.material_override = _ice_material
-		root.add_child(shard)
-		# 30° aus der Senkrechten = 60° zum Boden, Spitze nach vorn; leicht gefächert
-		shard.basis = Basis(tilt_axis, deg_to_rad(randf_range(24.0, 36.0))) * Basis(Vector3.UP, randf() * TAU)
-		shard.position = side * (i - 1) * 0.42 + dir * randf_range(-0.2, 0.2) + Vector3(0, -0.1, 0)
-		var s := randf_range(1.6, 2.3) * (1.15 if i == 1 else 0.9)
-		shard.scale = Vector3(s, 0.01, s)
-		var t := shard.create_tween()
-		t.tween_property(shard, "scale", Vector3.ONE * s, 0.12).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-		t.tween_interval(hold)
-		t.tween_property(shard, "scale", Vector3(s * 0.15, 0.01, s * 0.15), 0.18).set_ease(Tween.EASE_IN)
-	# Zersplittern: Eisfunken und Frostnebel, kurz bevor die Kristalle verschwinden
-	get_tree().create_timer(hold + 0.1, false).timeout.connect(func() -> void:
-		burst(ground + Vector3(0, 0.8, 0), Color(0.8, 0.95, 1.0), 12, 4.0, 0.35, 0.5, {"gravity": Vector3(0, -9, 0), "tex": "sparkle"})
-		smoke_cloud(ground + Vector3(0, 0.3, 0), Color(0.82, 0.92, 1.0, 0.45), 0.6, 0.0, 4, 0.3))
-	get_tree().create_timer(hold + 0.35, false).timeout.connect(_release.bind(root))
+	root.global_position = Vector3(from.x, 0.07, from.z)
+	root.rotation.y = atan2(-dir.x, -dir.z)   # lokal -Z zeigt in Angriffsrichtung
+	var half := deg_to_rad(angle_deg * 0.5)
+	var verts := PackedVector3Array()
+	var steps := 16
+	for i in steps:
+		var a0 := -half + 2.0 * half * i / steps
+		var a1 := -half + 2.0 * half * (i + 1) / steps
+		verts.append_array([Vector3.ZERO, Vector3(sin(a0), 0, -cos(a0)), Vector3(sin(a1), 0, -cos(a1))])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var fill_mat: StandardMaterial3D
+	for layer in 2:
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat.no_depth_test = true
+		mat.render_priority = 1
+		mat.albedo_color = Color(color, 0.22 if layer == 0 else 0.4)
+		var m := MeshInstance3D.new()
+		m.mesh = mesh
+		m.material_override = mat
+		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(m)
+		m.scale = Vector3.ONE * (length if layer == 0 else 0.05)
+		if layer == 1:
+			fill_mat = mat
+			m.create_tween().tween_property(m, "scale", Vector3.ONE * length, duration)
+	var tween := root.create_tween()
+	tween.tween_interval(duration)
+	tween.tween_property(fill_mat, "albedo_color:a", 0.0, 0.25)
+	tween.tween_callback(_release.bind(root))
+
+
+# --- Eisangriff in acht Schritten ------------------------------------------------------------------------------
+# Eisdrache (Eisfeuer-Odem): Zapfen fliegen aus dem Maul. Arcanist (Glacial Rift): Stacheln brechen aus dem Boden.
+#   1 ice_charge      Magie sammelt sich und bricht mit einem Blitz los
+#   2–4 ice_spike_path Stacheln entlang der Bahn, je näher am Ziel desto größer, kleinere fächern zu den Seiten auf
+#   5–6 ice_impact     Boden reißt um das Ziel auf, Brocken fliegen, großer Eiscluster, Lichtblitz, Kamerastoß
+#   7 (in _spike)     Stacheln schmelzen von oben und zerspringen in Splitter
+#   8 frost_linger    Schnee, Nebel und feines Glitzern bleiben in der Luft
+
+const ICE_COLOR := Color(0.6, 0.88, 1.0)
+const ICICLE_FLIGHT := 0.22   ## Flugzeit eines Zapfens vom Maul zum Boden (Schaden des Odems wartet darauf)
+
+
+## 1. Aufladen: Funken strömen zum Punkt, ein Glühen wächst; nach `duration` bricht es mit einem Blitz los.
+func ice_charge(pos: Vector3, duration: float, size := 1.0) -> void:
+	if _reserve():
+		var p := _particles(44, minf(duration, 0.7), 0.24 * size, Color(0.72, 0.93, 1.0), true, "spark_05")
+		p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+		p.emission_sphere_radius = 1.7 * size
+		p.initial_velocity_min = 0.0
+		p.initial_velocity_max = 0.3
+		p.radial_accel_min = -16.0 * size   # zieht die Funken zur Mitte
+		p.radial_accel_max = -11.0 * size
+		p.gravity = Vector3.ZERO
+		_spawn(p, pos, duration + 0.8)
+		_stop_after(p, maxf(0.05, duration - 0.25))
+	if _reserve():
+		var glow := MeshInstance3D.new()
+		glow.mesh = _quad
+		var mat := _base_material("", true)   # weicher runder Verlauf: flare_01 hat nur einen winzigen Kern
+		mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		mat.billboard_keep_scale = true   # sonst ignoriert das Billboard die Skalierung und das Glühen wächst nicht
+		mat.no_depth_test = true          # leuchtet auch, wenn das Maul im Kopf steckt
+		mat.render_priority = 2
+		mat.albedo_color = Color(0.6, 0.9, 1.0, 0.85)
+		glow.material_override = mat
+		glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(glow)
+		glow.global_position = pos
+		glow.scale = Vector3.ONE * 0.1
+		var light := OmniLight3D.new()
+		light.light_color = ICE_COLOR
+		light.light_energy = 0.0
+		light.omni_range = 4.0 * size
+		glow.add_child(light)
+		var t := glow.create_tween()
+		t.set_parallel(true)
+		t.tween_property(glow, "scale", Vector3.ONE * 2.2 * size, duration).set_ease(Tween.EASE_IN)
+		t.tween_property(light, "light_energy", 4.0, duration).set_ease(Tween.EASE_IN)
+		t.chain().tween_property(glow, "scale", Vector3.ONE * 0.05, 0.12)
+		t.tween_callback(_release.bind(glow))
+	get_tree().create_timer(duration, false).timeout.connect(func() -> void:
+		energy_burst(pos, ICE_COLOR, 1.8 * size, 0.35)
+		burst(pos, Color(0.85, 0.96, 1.0), 16, 6.0 * size, 0.3, 0.4, {"gravity": Vector3.ZERO, "tex": "spark_05"})
+		_light_flash(pos, ICE_COLOR, 4.0, 7.0 * size, 0.3))
+
+
+## 2.–4. Stachelbahn von `from` in Richtung `dir`: Hauptstacheln wachsen mit dem Abstand, kleinere fächern seitlich
+## auf (spread_deg = Öffnungswinkel, mindestens 0,5 m Abstand). Die Front läuft mit `speed`; `start_delay` verschiebt
+## alles (z. B. Aufladen). mouth: Zapfen fliegen erst aus dem Maul zu ihrem Platz (Eisdrache).
+func ice_spike_path(from: Vector3, dir: Vector3, length: float, spread_deg: float, hold: float, speed := 22.0,
+		mouth: Variant = null, start_delay := 0.0, start_dist := 1.0) -> void:
+	if _shard_meshes.is_empty():
+		_load_shards()
+	if _shard_meshes.is_empty() or not _reserve():
+		return
+	var flat := Vector3(dir.x, 0.0, dir.z).normalized()
+	var side := flat.cross(Vector3.UP).normalized()
+	var root := Node3D.new()
+	add_child(root)
+	root.global_position = Vector3(from.x, 0.0, from.z)
+	var half := deg_to_rad(spread_deg * 0.5)
+	var last := 0.0
+	var d := start_dist
+	while d <= length:
+		var k := d / length
+		var t := start_delay + (d - start_dist) / speed
+		if mouth != null:
+			_icicle(mouth as Vector3, root.global_position + flat * d, t)
+			t += ICICLE_FLIGHT
+		var size := lerpf(0.75, 2.0, k) * randf_range(0.9, 1.1)
+		_spike(root, flat * d, flat, size, t, hold, true)
+		# Seitenstacheln: je weiter vorn, desto mehr und desto weiter außen
+		var count := 1 + int(k * 2.0)
+		var reach := maxf(0.5, tan(half) * d)
+		for j in count:
+			for s in [-1.0, 1.0]:
+				var lateral: float = s * reach * (j + 1) / count * randf_range(0.8, 1.05)
+				var offset := flat * (d + randf_range(-0.3, 0.3)) + side * lateral
+				var outward := (flat + side * signf(lateral) * 0.5).normalized()
+				_spike(root, offset, outward, size * randf_range(0.4, 0.6), t + 0.04 * (j + 1), hold, false)
+		last = t
+		d += 1.0
+	get_tree().create_timer(last + hold + 0.9, false).timeout.connect(_release.bind(root))
+
+
+## Ein Stachel: bricht nach `delay` aus dem Boden (Spitze leicht nach vorn), steht `hold` Sekunden,
+## 7. schmilzt dann von oben und zerspringt (große Stacheln mit Splittern).
+func _spike(root: Node3D, local_pos: Vector3, lean_dir: Vector3, size: float, delay: float, hold: float, shatter: bool) -> void:
+	var spike := MeshInstance3D.new()
+	spike.mesh = _shard_meshes[randi() % _shard_meshes.size()]
+	spike.material_override = _ice_material
+	root.add_child(spike)
+	var tilt_axis := Vector3.UP.cross(lean_dir).normalized()
+	spike.basis = Basis(tilt_axis, deg_to_rad(randf_range(14.0, 30.0))) * Basis(Vector3.UP, randf() * TAU)
+	spike.position = local_pos + Vector3(0, -0.08, 0)
+	spike.scale = Vector3(size, 0.01, size)
+	spike.visible = false
+	var t := spike.create_tween()
+	t.tween_interval(maxf(0.0, delay))
+	t.tween_callback(func() -> void: spike.visible = true)
+	t.tween_property(spike, "scale", Vector3.ONE * size, 0.11).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	t.tween_interval(hold)
+	if shatter:
+		t.tween_callback(func() -> void:
+			var top := spike.global_position + Vector3(0, 0.9 * size, 0)
+			burst(top, Color(0.82, 0.96, 1.0), 10, 3.5, 0.3, 0.55, {"gravity": Vector3(0, -10, 0), "tex": "spark_05"}))
+	t.tween_property(spike, "scale", Vector3(size * 0.85, 0.02, size * 0.85), 0.35).set_ease(Tween.EASE_IN)   # schmilzt von oben
+	t.tween_callback(func() -> void: spike.visible = false)
+
+
+## 2. Ein Eiszapfen fliegt aus dem Maul zum Boden (Spitze voraus) und verschwindet beim Aufschlag.
+func _icicle(from: Vector3, to: Vector3, delay: float) -> void:
+	var ice := MeshInstance3D.new()
+	ice.mesh = _shard_meshes[randi() % _shard_meshes.size()]
+	ice.material_override = _ice_material
+	ice.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(ice)
+	ice.global_position = from
+	var v := to - from
+	if v.length() > 0.01:
+		# Modell zeigt nach +Y: so drehen, dass +Y in Flugrichtung zeigt
+		ice.basis = Basis.looking_at(v.normalized(), Vector3.UP if absf(v.normalized().y) < 0.99 else Vector3.RIGHT) * Basis(Vector3.RIGHT, -PI * 0.5)
+	ice.scale = Vector3.ONE * 0.45
+	ice.visible = false
+	var t := ice.create_tween()
+	t.tween_interval(maxf(0.0, delay))
+	t.tween_callback(func() -> void: ice.visible = true)
+	t.tween_property(ice, "global_position", to, ICICLE_FLIGHT).set_ease(Tween.EASE_IN)
+	t.tween_callback(ice.queue_free)
+
+
+## 5.–6. Einschlag: Boden reißt um das Ziel auf, Brocken fliegen. big = großer Abschluss mit Eiscluster,
+## Lichtblitz, Kamerastoß und anhaltendem Frost (sonst nur Risse, Brocken und ein kleiner Kranz).
+func ice_impact(pos: Vector3, radius: float, hold: float, delay := 0.0, big := true) -> void:
+	var ground := Vector3(pos.x, 0.0, pos.z)
+	get_tree().create_timer(maxf(0.01, delay), false).timeout.connect(func() -> void:
+		_ground_cracks(ground, radius * 1.4, hold + 1.4)
+		burst(ground + Vector3(0, 0.3, 0), Color(0.42, 0.38, 0.34), 16 if big else 8, 7.0, 0.4, 0.9,
+			{"gravity": Vector3(0, -16, 0), "spread": 45.0, "glow": false, "tex": "dirt_02"})
+		if not big:
+			ice_shards(ground, radius, 7, hold)
+			return
+		ice_shards(ground, radius * 1.15, 16, hold)
+		if _reserve():
+			var cluster := Node3D.new()
+			add_child(cluster)
+			cluster.global_position = ground
+			for i in 5:
+				var a := TAU * i / 5.0 + randf() * 0.5
+				var off := Vector3(cos(a), 0, sin(a)) * radius * randf_range(0.1, 0.45)
+				_spike(cluster, off, off.normalized() if off.length() > 0.01 else Vector3.FORWARD,
+					randf_range(2.2, 3.0), randf() * 0.06, hold, true)
+			get_tree().create_timer(hold + 0.7, false).timeout.connect(_release.bind(cluster))
+		energy_burst(ground + Vector3(0, 1.0, 0), ICE_COLOR, radius * 1.4, 0.45)
+		shockwave(ground, radius * 1.6, ICE_COLOR, 0.45)
+		_light_flash(ground + Vector3(0, 1.5, 0), ICE_COLOR, 7.0, radius * 4.0, 0.45)
+		if _camera_rig != null and is_instance_valid(_camera_rig):
+			_camera_rig.shake(0.35)
+		frost_linger(ground, radius * 1.3, hold + 1.6))
+
+
+## 8. Frost in der Luft: Nebel am Boden, langsam fallender Schnee und feines Glitzern.
+func frost_linger(pos: Vector3, radius: float, duration: float) -> void:
+	smoke_cloud(pos + Vector3(0, 0.4, 0), Color(0.86, 0.94, 1.0, 0.5), radius * 0.6, duration, 14, 0.2)
+	if _reserve():
+		var snow := _particles(40, 1.8, 0.13, Color(0.97, 0.99, 1.0, 0.95), true, "star_04")
+		snow.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+		snow.emission_box_extents = Vector3(radius, 0.3, radius)
+		snow.direction = Vector3.DOWN
+		snow.spread = 25.0
+		snow.gravity = Vector3(0, -0.8, 0)
+		snow.initial_velocity_min = 0.4
+		snow.initial_velocity_max = 0.9
+		_spawn(snow, pos + Vector3(0, 2.8, 0), duration + 2.0)
+		_stop_after(snow, duration)
+	if _reserve():
+		var glitter := _particles(30, 1.3, 0.08, Color(0.7, 0.92, 1.0), true, "spark_05")
+		glitter.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+		glitter.emission_box_extents = Vector3(radius, 0.8, radius)
+		glitter.gravity = Vector3(0, 0.25, 0)
+		glitter.initial_velocity_min = 0.0
+		glitter.initial_velocity_max = 0.2
+		_spawn(glitter, pos + Vector3(0, 1.0, 0), duration + 1.5)
+		_stop_after(glitter, duration)
+
+
+## 5. Leuchtende Bodenrisse: gezackte Linien vom Zentrum nach außen (dunkler Spalt mit eisblauem Glimmen).
+func _ground_cracks(pos: Vector3, radius: float, duration: float) -> void:
+	if not _reserve():
+		return
+	var dark := PackedVector3Array()
+	var glow := PackedVector3Array()
+	for c in 9:
+		var a := TAU * c / 9.0 + randf_range(-0.25, 0.25)
+		var p := Vector3(cos(a), 0, sin(a)) * 0.25
+		var segments := 5
+		var length := radius * randf_range(0.6, 1.0)
+		for s in segments:
+			a += randf_range(-0.45, 0.45)
+			var q := p + Vector3(cos(a), 0, sin(a)) * length / segments
+			var w := lerpf(0.16, 0.03, float(s) / segments)
+			_crack_quad(dark, p, q, w, 0.065)
+			_crack_quad(glow, p, q, w * 0.45, 0.07)
+			p = q
+	var mesh := ArrayMesh.new()
+	var mats: Array[StandardMaterial3D] = []
+	for layer in [[dark, Color(0.05, 0.08, 0.13, 0.9), false], [glow, Color(0.55, 0.9, 1.0, 0.95), true]]:
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = layer[0]
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD if layer[2] else BaseMaterial3D.BLEND_MODE_MIX
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat.albedo_color = layer[1]
+		mesh.surface_set_material(mesh.get_surface_count() - 1, mat)
+		mats.append(mat)
+	var m := MeshInstance3D.new()
+	m.mesh = mesh
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(m)
+	m.global_position = Vector3(pos.x, 0.0, pos.z)
+	m.scale = Vector3(0.15, 1.0, 0.15)
+	var t := m.create_tween().set_parallel(true)
+	t.tween_property(m, "scale", Vector3.ONE, 0.14).set_ease(Tween.EASE_OUT)   # reißt schnell nach außen auf
+	for mat in mats:
+		t.tween_property(mat, "albedo_color:a", 0.0, duration * 0.4).set_delay(duration * 0.6)
+	t.chain().tween_callback(_release.bind(m))
+
+
+func _crack_quad(verts: PackedVector3Array, a: Vector3, b: Vector3, width: float, y: float) -> void:
+	var p := (b - a).cross(Vector3.UP).normalized() * width * 0.5
+	var lift := Vector3(0, y, 0)
+	verts.append_array([a + p + lift, a - p + lift, b + p + lift, a - p + lift, b - p + lift, b + p + lift])
+
+
+## Schneesturm: Nebelwand, schräg fallender Schnee und eine Frostfläche, solange der Sturm anhält.
+func blizzard(pos: Vector3, radius: float, duration: float) -> void:
+	smoke_cloud(pos + Vector3(0, 0.6, 0), Color(0.85, 0.92, 1.0, 0.7), radius * 0.75, duration, 30, 0.3)
+	disc(pos, radius, Color(0.6, 0.85, 1.0, 0.35), duration)
+	decal(pos, "rune_circle", radius * 0.9, Color(0.55, 0.85, 1.0, 0.5), duration, 0.15)
+	if not _reserve():
+		return
+	var snow := _particles(90, 1.1, 0.2, Color(0.95, 0.98, 1.0, 0.95), true, "star_04")
+	snow.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	snow.emission_box_extents = Vector3(radius * 0.8, 0.4, radius * 0.8)
+	snow.direction = Vector3(0.5, -1.0, 0.2).normalized()   # Wind treibt den Schnee schräg
+	snow.spread = 12.0
+	snow.gravity = Vector3(0, -2.0, 0)
+	snow.initial_velocity_min = 3.0
+	snow.initial_velocity_max = 5.0
+	_spawn(snow, pos + Vector3(-0.8, 4.0, 0), duration + 1.3)
+	_stop_after(snow, duration)
+
+
+## Dauerhaft sprühende Partikel nach `duration` abschalten (schwache Referenz: die Runde kann vorher enden).
+func _stop_after(p: CPUParticles3D, duration: float) -> void:
+	var ref: WeakRef = weakref(p)
+	get_tree().create_timer(duration, false).timeout.connect(func() -> void:
+		var node: CPUParticles3D = ref.get_ref()
+		if node != null:
+			node.emitting = false)
 
 
 ## Klingen-Wirbel am Boden um eine Einheit (zeigt den Radius): drehender Druckwellen-Ring und drei flache

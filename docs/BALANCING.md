@@ -20,6 +20,10 @@ Alle Werte stehen in `data/` und sind ohne Codeänderung anpassbar. Die Zahlen h
 | `rewards.xp_share_radius` | 16 m | XP für Helden in dieser Nähe zum besiegten Gegner |
 | `fountain.position` / `radius` | (0, 0, 25,5) / 4 m | Brunnen der Erholung am Südrand, 25,5 m vom Kern (Heilen kostet Zeit an der Basis) |
 | `fountain.hp_per_second` / `mana_per_second` | 0,01 / 0,01 | Anteil von max. Leben/Mana pro Sekunde im Wirkkreis (von 0,025 gesenkt; Volle Heilung ~100 s; nicht gegengespielt) |
+| `map_structures.tower` | 1.800 LP, Rüstung 4, 34 Schaden / 1,1 s, 9 m | Turm der Zitadelle, 4 Stück wie im Konzeptbild (magischer Glutschuss auf den nächsten Gegner; nicht gegengespielt) |
+| `maps.json` → `citadel.fountain_radius` | 3,2 m | Brunnenkreis der Zitadelle (kleinerer Hof als die Arena; Raten wie `fountain`) |
+| `map_structures.gate` | 3.500 LP, Rüstung 6, 20 Schaden / 1,0 s, 10 m | Torhaus: hält Gegner auf, bis es fällt |
+| `map_structures.shrine` | +20 % Leben/Mana, 90 s Ladezeit, 2,2 m | Schrein am Fluss: einmaliger Schub für einen verletzten Helden |
 
 **Spielerskalierung:** bewusst nicht linear. Bei 4 Spielern haben Gegner das 2,8-Fache der LP statt des 4-Fachen. **Wellenskalierung:** Neben der Zusammensetzung steigen LP und Schaden je Welle leicht, in Welle 10 um +72 % LP und +45 % Schaden.
 
@@ -69,6 +73,8 @@ Pro Stufe wachsen die Attribute laut `growth` des Helden; gewonnene Max-LP und M
 | Knochenläufer | 120 | 3,2 | 14 | 20 | 1,4 s | 0 | 0 | 10 | 12 |
 | Schattenhuscher | 70 | 5,6 | 8 | 30 | 1,0 s | 0 | 5 | 9 | 10 |
 | Grabkoloss | 480 | 2,3 | 32 | 90 | 2,0 s | 15 | 0 | 15 | 30 |
+| Abgrund-Hexer | 650 | 2,7 | 24 (magisch, 6 m) | 45 | 1,9 s | 12 | 25 | 45 | 75 |
+| Eisdrache | 5200 | 2,1 | 45 (magisch, 8 m) / 75 (Nahkampf) | 220 | 1,9 s | 65 | 30 | 600 | 900 |
 
 | Aggro | Radius (greift Helden in der Nähe an) | Leash (gibt Verfolgung auf) |
 |---|---|---|
@@ -111,3 +117,7 @@ Werte in `data/balance/game.json` (`rewards`, `contribution`).
 | AFK | kein Spielerbefehl seit 60 s → keine Wellen-, Support- und Rollenbelohnung |
 
 **Kalibrierung:** Der Test `test_rewards.gd::test_roles_earn_comparable_gold` simuliert eine 4-Spieler-Welle (24 Knochenläufer, 4 Grabkolosse) mit typischem Verhalten je Rolle. Ausgangswerte ergaben Tank 725 · Support 486 · Magier 540 · Schurke 435 Gold (67 % Abstand). Nach Anpassung der Gewichte und Aufnahme von Schaden in den Rollenbonus: **Tank 428 · Support 444 · Magier 436 · Schurke 398** – alle im Zielkorridor 300–450, Abstand 11,6 % (Vorgabe ≤ 15 %). Die Simulation beruht auf Annahmen über typisches Verhalten; echte Werte liefert die Telemetrie.
+
+**Eisdrache** (`ice_drake`, Mini-Boss, Welle 8 Pfad 2, 10 s nach Wellenstart; ersetzt dort einen Grabritter, Vorbereitung 45 s statt 40 s): Kontrollresistenz 60 %, Körperradius 1,5 m. Elemente Eis ×0, Feuer ×1,5, Gift ×1,5. Unterkühlung 20 %/20 % für 2 s. Odem 90 Schaden, Abklingzeit 9/8/6,5 s, erster nach 4 s. Schneesturm 14 Schaden je 0,5 s, Abklingzeit 12/12/9 s, Einfrieren bei 6 Stapeln für 1,5 s. Schrei alle 18 s, erster nach 8 s, +25 Rüstung/MR für Gegner. Phasen bei 60 % und 30 %. Alle Werte Schätzwerte, nicht gegengespielt.
+
+**Abgrund-Hexer** (`abyss_hexer`, Elite, Welle 7 Pfad 1, 12 s nach Wellenstart): Staffschlag 60 Schaden, 4,5 m, 45 % Verlangsamung 2,5 s, 1 s Ankündigung, 9 s Abklingzeit, erster Schlag nach 3 s. Alle Werte Schätzwerte, nicht gegengespielt.

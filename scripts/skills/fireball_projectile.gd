@@ -59,7 +59,7 @@ func _explode() -> void:
 	for e: Enemy in world.spawner.enemies_in_radius(target, radius):
 		var d := Vector2(e.global_position.x - target.x, e.global_position.z - target.z).length()
 		var amount := damage if d <= CORE_RADIUS + e.body_radius else damage * SPLASH_FACTOR
-		world.combat.deal_damage(source, e, amount, DamageInfo.Type.MAGIC)
+		world.combat.deal_damage(source, e, amount, DamageInfo.Type.MAGIC, false, "fire")
 	world.vfx.end_trail(_trail)
 	world.vfx.fire_explosion(target, radius)
 	world.vfx.burst(target + Vector3(0, 0.5, 0), Color(1.0, 0.75, 0.3), 30, 9.0, 0.3, 0.7, {"gravity": Vector3(0, -9, 0), "tex": "spark_04"})

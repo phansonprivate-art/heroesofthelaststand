@@ -149,6 +149,33 @@
       }
     },
     {
+      "id": "abyss_hexer",
+      "name": "Abgrund-Hexer",
+      "category": "elite",
+      "model": "res://assets/models/enemies_custom/AbyssHexer.glb",
+      "model_scale": 1.0,
+      "max_hp": 650,
+      "move_speed": 2.7,
+      "damage": 24,
+      "structure_damage": 45,
+      "armor": 12,
+      "magic_resist": 25,
+      "cc_resist": 0.25,
+      "attack_interval": 1.9,
+      "attack_hit_delay": 0.45,
+      "attack_range": 6.0,
+      "aggro_radius": 8,
+      "aggro_leash": 11,
+      "gold": 45,
+      "xp": 75,
+      "projectile": { "color": "#c46bff", "speed": 14 },
+      "ability": { "type": "stomp", "anim": "Staff_Slam", "trigger": 4.5, "radius": 4.5, "windup": 1.0, "cooldown": 9,
+                   "first_delay": 3, "damage": 60, "slow": 0.45, "slow_time": 2.5 },
+      "anims": {
+        "idle": "Hexer_Idle", "run": "Walking_A", "attack": ["Spellcast_Shoot"], "death": "Death_A", "hit": ["Hit_A"], "cheer": "Cheer"
+      }
+    },
+    {
       "id": "colossus",
       "name": "Knochenkoloss",
       "category": "miniboss",
@@ -177,6 +204,61 @@
         "hit": ["Hit_A"],
         "spawn": "Spawn_Ground_Skeletons",
         "cheer": "Taunt"
+      }
+    },
+    {
+      "id": "ice_drake",
+      "name": "Eisdrache",
+      "category": "miniboss",
+      "model": "res://assets/models/enemies_custom/FrostDrake.glb",
+      "model_scale": 1.15,
+      "body_radius": 1.5,
+      "bar_height": 3.6,
+      "max_hp": 5200,
+      "move_speed": 2.1,
+      "damage": 45,
+      "structure_damage": 220,
+      "armor": 65,
+      "magic_resist": 30,
+      "cc_resist": 0.6,
+      "attack_interval": 1.9,
+      "attack_hit_delay": 0.5,
+      "attack_range": 8.0,
+      "aggro_radius": 10.0,
+      "aggro_leash": 16.0,
+      "gold": 600,
+      "xp": 900,
+      "projectile": { "speed": 13.0, "color": "#9fe6ff", "forward": 1.8 },
+      "melee": { "range": 2.2, "damage": 75 },
+      "on_hit": { "slow": 0.2, "attack_slow": 0.2, "duration": 2.0 },
+      "elements": { "ice": 0.0, "fire": 1.5, "poison": 1.5 },
+      "boss": {
+        "title": "Eisdrache",
+        "color": "#9fe6ff",
+        "phase_anim": "Roar",
+        "phase_hp": [0.6, 0.3],
+        "phase_texts": [
+          ["Eisdrache", ""],
+          ["Schneesturm!", "In blauen Kreisen friert ihr ein – nicht stehen bleiben!"],
+          ["Der Eisdrache tobt!", "Feuer und Gift brechen sein Eis"]
+        ],
+        "frost_breath": { "cooldown": [9.0, 8.0, 6.5], "warning": 1.0, "breath_time": 0.9, "range": 9.0, "angle": 70,
+          "damage": 90, "slow": 0.6, "attack_slow": 0.4, "slow_time": 2.5, "first_delay": 4.0, "anim": "Fire_Breath" },
+        "blizzard": { "from_phase": 2, "cooldown": [12.0, 12.0, 9.0], "warning": 1.0, "radius": 4.0, "duration": 5.0,
+          "interval": 0.5, "damage": 14, "slow": 0.35, "freeze_stacks": 6, "stack_time": 2.0, "freeze_time": 1.5, "first_delay": 2.0 },
+        "frost_roar": { "cooldown": 18.0, "warning": 0.8, "radius": 14.0, "slow": 0.4, "attack_slow": 0.4, "duration": 4.0,
+          "ally_armor": 25, "ally_duration": 6.0, "first_delay": 8.0, "anim": "Roar" },
+        "enrage": { "attack_speed": 1.3, "move": 1.2 }
+      },
+      "anims": {
+        "idle": "Idle",
+        "run": "Walk",
+        "attack": ["Attack_Bite"],
+        "melee": ["Attack_Claw", "Attack_Bite"],
+        "death": "Death",
+        "hit": ["Hit"],
+        "spawn": "Roar",
+        "cheer": "Roar"
       }
     },
     {

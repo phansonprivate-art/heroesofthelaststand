@@ -1,10 +1,12 @@
 class_name MainMenu
 extends Control
-## Startmenü: Held wählen, Einzelspiel starten, beenden.
+## Startmenü: Held und Karte wählen, Einzelspiel starten, beenden.
 
 var _selected_hero := ""
 var _cards: Dictionary = {}     ## hero_id -> Button
 var _detail: Label
+var _map_buttons: Dictionary = {}   ## map_id -> Button
+var _map_detail: Label
 
 
 func _ready() -> void:
@@ -59,6 +61,28 @@ func _ready() -> void:
 	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	detail_panel.add_child(_detail)
 
+	box.add_child(UiTheme.label("Wähle die Karte", 16, UiTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER))
+	var map_row := HBoxContainer.new()
+	map_row.add_theme_constant_override("separation", 14)
+	map_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(map_row)
+	for mid in GameData.map_order:
+		var map_def := GameData.map(mid)
+		var b := Button.new()
+		b.text = map_def.name
+		b.tooltip_text = map_def.description
+		b.toggle_mode = true
+		b.focus_mode = Control.FOCUS_NONE
+		b.custom_minimum_size = Vector2(240, 44)
+		b.add_theme_font_size_override("font_size", 18)
+		b.pressed.connect(_select_map.bind(mid))
+		map_row.add_child(b)
+		_map_buttons[mid] = b
+	_map_detail = UiTheme.label("", 14, UiTheme.MUTED, HORIZONTAL_ALIGNMENT_CENTER)
+	_map_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_map_detail)
+	_select_map(Session.map_id if GameData.maps.has(Session.map_id) else (GameData.map_order[0] if not GameData.map_order.is_empty() else ""))
+
 	var start := Button.new()
 	start.text = "Einzelspiel starten"
 	start.add_theme_font_size_override("font_size", 24)
@@ -89,6 +113,15 @@ func _ready() -> void:
 
 func select_hero(id: String) -> void:
 	_select(id)
+
+
+func _select_map(id: String) -> void:
+	if not GameData.maps.has(id):
+		return
+	Session.map_id = id
+	for mid in _map_buttons:
+		(_map_buttons[mid] as Button).button_pressed = mid == id
+	_map_detail.text = GameData.map(id).description
 
 
 func _select(id: String) -> void:

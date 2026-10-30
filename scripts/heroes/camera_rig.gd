@@ -8,7 +8,7 @@ const MIN_DIST := 14.0
 const MAX_DIST := 52.0
 const YAW := 0.0                    ## Blick nach Norden; alle drei Tore liegen im Sichtfeld
 const PITCH_DEG := 56.0
-const BOUNDS := Rect2(-26, -26, 52, 52)
+var bounds := Rect2(-26, -26, 52, 52)   ## Kamerafokus bleibt in diesem Bereich (je Karte, GameMap.camera_bounds)
 
 signal lock_changed(locked: bool)
 
@@ -80,13 +80,21 @@ func _edge_pan(delta: float) -> void:
 		focus += ground_direction(dir) * EDGE_PAN_SPEED * (distance / 26.0) * delta
 
 
+## Kamera zu einem Punkt schwenken (Minimap). Löst sie vom Helden; Leertaste bzw. Y holt sie zurück.
+func jump_to(point: Vector3) -> void:
+	if locked:
+		locked = false
+		lock_changed.emit(false)
+	focus = Vector3(point.x, 0.0, point.z)
+
+
 func shake(strength: float) -> void:
 	_shake = clampf(maxf(_shake, strength), 0.0, 1.0)
 
 
 func _apply() -> void:
-	focus.x = clampf(focus.x, BOUNDS.position.x, BOUNDS.end.x)
-	focus.z = clampf(focus.z, BOUNDS.position.y, BOUNDS.end.y)
+	focus.x = clampf(focus.x, bounds.position.x, bounds.end.x)
+	focus.z = clampf(focus.z, bounds.position.y, bounds.end.y)
 	var p := deg_to_rad(PITCH_DEG)
 	var offset := Vector3(sin(YAW) * cos(p), sin(p), cos(YAW) * cos(p)) * distance
 	var jitter := Vector3(randf_range(-1, 1), randf_range(-1, 1), 0) * _shake * _shake * 0.35

@@ -3,7 +3,7 @@ extends Node
 ## Zeitlich begrenzte Zustände einer Einheit.
 ## Regeln:
 ##  - gleiche Effekte stapeln nicht: Dauer wird erneuert, die stärkere Wirkung gilt (Ausnahme: apply_stacking)
-##  - cc_resist (z. B. Bosse) verkürzt die Dauer von Kontrolleffekten (stun, slow, taunt)
+##  - cc_resist (z. B. Bosse) verkürzt die Dauer von Kontrolleffekten (stun, slow, taunt, chill)
 ##  - last_gain = tatsächlich hinzugekommene Wirkdauer der letzten Anwendung (Grundlage gegen Belohnungs-Farmen)
 ## Effekte mit Schaden über Zeit (poison) rufen jede Sekunde dot_handler(source, amount) auf.
 
@@ -15,6 +15,8 @@ const TAUNT := "taunt"
 const POISON := "poison"
 const DAMAGE_REDUCTION := "damage_reduction"
 const HASTE := "haste"            ## Angriffstempo-Bonus (Anteil)
+const CHILL := "chill"            ## Unterkühlung: Angriffstempo-Malus (Anteil), z. B. vom Eisdrachen
+const FROSTBITE := "frostbite"    ## Erfrierung: Stapel im Schneesturm, bei voller Zahl friert die Einheit ein
 const SWIFT := "swift"            ## Lauftempo-Bonus (Anteil)
 const CRIT_BONUS := "crit_bonus"
 const ARMOR_BONUS := "armor_bonus"
@@ -22,7 +24,7 @@ const UNTARGETABLE := "untargetable"   ## unverwundbar und für Gegner unsichtba
 const CHANNEL := "channel"             ## kanalisiert (Dagger Cyclone): steht still, ein Bewegungsbefehl bricht ab
 const WHIRL := "whirl"                 ## wirbelt (Iron Maelstrom): läuft frei, aber keine normalen Angriffe
 const SANCTUARY := "sanctuary"         ## am Brunnen der Erholung: nur Bewegung – keine Angriffe, keine Zauber
-const CONTROL := [SLOW, STUN, TAUNT]
+const CONTROL := [SLOW, STUN, TAUNT, CHILL]
 const MAX_DAMAGE_REDUCTION := 0.75
 
 var cc_resist := 0.0          ## 0 = volle Wirkung, 0.5 = halbe Dauer
@@ -103,6 +105,11 @@ func move_multiplier() -> float:
 	if _effects.has(SLOW):
 		m *= 1.0 - clampf(_effects[SLOW].magnitude, 0.0, max_slow)
 	return m
+
+
+## Multiplikator für das Angriffstempo (1.0 = normal). Unterkühlung bremst wie ein Slow, gleiche Obergrenze.
+func attack_speed_multiplier() -> float:
+	return 1.0 - clampf(magnitude(CHILL), 0.0, max_slow)
 
 
 func damage_reduction() -> float:

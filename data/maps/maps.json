@@ -1,0 +1,23 @@
+{
+  "_comment": "Wählbare Karten. scene = Godot-Szene der Karte, core = Lage des Kristallkerns, fountain = Lage des Brunnens der Erholung (fountain_radius: Wirkkreis, sonst aus game.json), layout = Grundriss (nur Zitadelle).",
+  "maps": [
+    {
+      "id": "arena",
+      "name": "Arena der Letzten",
+      "description": "Kompakte Arena: drei Tore, der Kern in der Mitte – reine Wellenverteidigung.",
+      "scene": "res://scenes/arena/arena.tscn",
+      "core": [0.0, 0.0, 0.0],
+      "fountain": [0.0, 0.0, 25.5]
+    },
+    {
+      "id": "citadel",
+      "name": "Zitadelle des Lichts",
+      "description": "Große Karte: drei Lanes aus dem Abgrund, die mittlere um den Krater des Dschungelbosses, Fluss mit Brücken, Türme, Torhaus und die Zitadelle auf der Klippe.",
+      "scene": "res://scenes/maps/citadel.tscn",
+      "layout": "res://data/maps/citadel_layout.json",
+      "core": [49.5, 0.0, 0.0],
+      "fountain": [55.88, 0.0, 0.0],
+      "fountain_radius": 3.2
+    }
+  ]
+}

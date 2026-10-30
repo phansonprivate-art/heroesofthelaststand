@@ -11,6 +11,7 @@ var final_amount := 0.0    ## tatsächlich abgezogene Lebenspunkte (nie mehr als
 var absorbed := 0.0        ## von Schilden abgefangen (zählt nicht als LP-Verlust)
 var type := Type.PHYSICAL
 var is_crit := false
+var element := ""          ## "", "fire", "ice" oder "poison"; Gegner können dagegen immun oder anfällig sein
 var source: Node = null    ## Verursacher; vor Zugriff mit is_instance_valid prüfen
 
 

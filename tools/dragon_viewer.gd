@@ -5,6 +5,7 @@ extends Node3D
 ##   godot --path . res://tools/dragon_viewer.tscn -- --shots=<ordner>
 
 const MODEL := "res://assets/models/enemies_custom/EmberDrake.glb"
+const FROST_MODEL := "res://assets/models/enemies_custom/FrostDrake.glb"   ## `-- --frost`: Frostdrache (Tripo-Modell, gleiches Skelett)
 ## Reihenfolge und deutsche Namen der Animationen
 const ANIMS := [
 	["Idle", "Stehen und Atmen"], ["Walk", "Laufen"], ["Attack_Bite", "Biss"], ["Attack_Claw", "Prankenhieb"],
@@ -34,7 +35,7 @@ func _ready() -> void:
 	# wie im Spiel über CharacterVisual laden (dreht das Modell nach Godot-vorn = -Z)
 	var dragon := CharacterVisual.new()
 	add_child(dragon)
-	dragon.setup(MODEL, [], 1.0, {"idle": "Idle", "run": "Walk"})
+	dragon.setup(_model_path(), [], 1.0, {"idle": "Idle", "run": "Walk"})
 	_player = dragon.anim_player
 	for a in LOOPING:
 		if _player.has_animation(a):
@@ -144,10 +145,22 @@ func _restart_later() -> void:
 		_player.seek(0.0, true)
 
 
+func _frost() -> bool:
+	return OS.get_cmdline_user_args().has("--frost")
+
+
+func _model_path() -> String:
+	return FROST_MODEL if _frost() else MODEL
+
+
+func _title() -> String:
+	return "Frostdrache" if _frost() else "Glutdrache"
+
+
 func _update_info() -> void:
 	var anim: String = ANIMS[_anim_index][0]
-	_info.text = "Glutdrache  –  %s  (%s)\nAnimation %d/%d   ·   %.2f s   ·   Tempo ×%s%s" % [
-		ANIMS[_anim_index][1], anim, _anim_index + 1, ANIMS.size(), _player.get_animation(anim).length,
+	_info.text = "%s  –  %s  (%s)\nAnimation %d/%d   ·   %.2f s   ·   Tempo ×%s%s" % [
+		_title(), ANIMS[_anim_index][1], anim, _anim_index + 1, ANIMS.size(), _player.get_animation(anim).length,
 		str(SPEEDS[_speed_index]), "   ·   PAUSE" if _paused else ""]
 
 

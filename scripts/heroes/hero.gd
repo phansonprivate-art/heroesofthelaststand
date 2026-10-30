@@ -293,7 +293,7 @@ static func apply_on_hit(target: Node, on_hit: Dictionary, source: Node) -> void
 func current_attack_interval() -> float:
 	var cap := float(GameData.attribute_rules.get("caps", {}).get("attack_speed_bonus", 1.5))
 	var bonus := minf(stats.attack_speed_bonus() + status.magnitude(StatusEffects.HASTE), cap)
-	return data.base_attack_interval / (1.0 + bonus)
+	return data.base_attack_interval / (1.0 + bonus) / status.attack_speed_multiplier()   # Unterkühlung bremst
 
 
 func spend_mana(amount: float) -> bool:
